@@ -2,8 +2,8 @@
 import subprocess
 
 program_list = ["rm -rf test1", "rm -rf test2", "rm -rf test3", "rm -rf test4", "rm -rf test5",
-                "python3 hexagonal.py -tao_type bncg -tao_max_funcs 10000 -tao_monitor -tao_max_it 1000 -m 'hexa.msh' -o 'test1' -er 1.0e-2 -es 1.0e-2 -lr 0.015 -ls 0.015 -vr 0.3 -vs 0.3 -k 5.0e-5 -e 1.0e-2 -p 2.0 -q 1.0",
-                "python3 hexagonal.py -tao_type blmvm -tao_max_funcs 10000 -tao_monitor -tao_max_it 1000 -m 'hexa.msh' -o 'test2' -er 1.0e-2 -es 1.0e-2 -lr 0.015 -ls 0.015 -vr 0.3 -vs 0.3 -k 5.0e-5 -e 1.0e-2 -p 2.0 -q 1.0"]
+                "python3 hexagonal.py -tao_type bncg -tao_max_funcs 10000 -tao_monitor -tao_max_it 100 -m 'hexa.msh' -o 'test1' -er 1.0e-1 -es 1.0e-2 -lr 0.15 -ls 0.015 -vr 0.3 -vs 0.3 -k 1.0e-4 -e 1.0e-4",
+                "python3 hexagonal.py -tao_type bncg -tao_max_funcs 10000 -tao_monitor -tao_max_it 100 -m 'hexa.msh' -o 'test2' -er 1.0e0 -es 1.0e-1 -lr 0.15 -ls 0.015 -vr 0.3 -vs 0.3 -k 1.0e-4 -e 1.0e-4"]
 
 
 

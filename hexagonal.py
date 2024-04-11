@@ -79,7 +79,7 @@ lagrange_s = Constant(options.lagrange_s)
 # Total volume of the domain |omega|
 omega = assemble(interpolate(Constant(1.0), V) * dx)
 
-delta = Constant(1.0e-3)
+delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
 kappa_d_e = Constant(kappa / epsilon)
 kappa_m_e = Constant(kappa * epsilon)
@@ -390,15 +390,15 @@ def FormObjectiveGradient(tao, x, G):
 	# print("The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3 and s
-	dJdrhos.interpolate(assemble(derivative(L, rho.sub(0))))
+	dJdrhos.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
 	dJdrhos.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
-	dJdrhor.interpolate(assemble(derivative(L, rho.sub(1))))
+	dJdrhor.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
 	dJdrhor.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 	
-	dJdsxx.interpolate(assemble(derivative(L, rho.sub(2))))
-	dJdsxy.interpolate(assemble(derivative(L, rho.sub(3))))
-	dJdsyx.interpolate(assemble(derivative(L, rho.sub(4))))
+	dJdsxx.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
+	dJdsxy.interpolate(assemble(derivative(L, rho.sub(3))).riesz_representation(riesz_map="l2"))
+	dJdsyx.interpolate(assemble(derivative(L, rho.sub(4))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_s, dJdrhos.vector().array())
 	G.setValues(index_r, dJdrhor.vector().array())
