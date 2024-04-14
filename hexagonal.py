@@ -13,6 +13,7 @@ def parse():
 	parser.add_argument('-vs', '--volume_s', type = float, default = 0.3, help = 'Volume percentage for structural material')
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Volume percentage for responsive material')
 	parser.add_argument('-k', '--kappa', type = float, default = 1.0e-2, help = 'Weight of Modica-Mortola')
+	parser.add_argument('-tao_bncg_type', '--tao_bncg_type', type = str, default = 'dg', help = 'TAO BNCG algorithm type')
 	parser.add_argument('-e', '--epsilon', type = float, default = 5.0e-3, help = 'Phase-field regularization parameter')
 	parser.add_argument('-o', '--output', type = str, default = 'output1', help = 'Output folder')
 	parser.add_argument('-m', '--mesh', type = str, default = 'hexa.msh', help = 'Dimensions of meshed beam')
