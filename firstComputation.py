@@ -4,6 +4,7 @@ def parse():
 	parser.add_argument('-tao_type', '--tao_type', type = str, default = 'bncg', help = 'TAO algorithm type')
 	parser.add_argument('-tao_max_funcs', '--tao_max_funcs', type = int, default = 10000, help = 'TAO maximum functions evaluations')
 	parser.add_argument('-tao_monitor', '--tao_monitor', action = 'store_true', help = 'TAO monitor')
+	parser.add_argument('-tao_ls_monitor', '--tao_ls_monitor', action = 'store_true', help = 'TAO line search monitor')
 	parser.add_argument('-ls', '--lagrange_s', type = float, default = 5.0, help = 'Lagrange multiplier for structural material')
 	parser.add_argument('-lr', '--lagrange_r', type = float, default = 0.5, help = 'Lagrange multiplier for responsive material')
 	parser.add_argument('-tao_bncg_alpha', '--tao_bncg_alpha', type = float, default = 0.5, help = 'Scalar preconditioning')
@@ -23,7 +24,7 @@ def parse():
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.1, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation')
-	parser.add_argument('-q', '--power_q', type = float, default = 1.0, help = 'Power for multiple-well function')
+	parser.add_argument('-q', '--power_q', type = float, default = 2.0, help = 'Power for multiple-well function')
 	parser.add_argument('-s', '--steamy', type = float, default = 1.0, help = 'Initial stimulus')
 	options = parser.parse_args()
 	return options
@@ -42,8 +43,6 @@ mesh = Mesh(options.mesh)
 Id = Identity(mesh.geometric_dimension()) #Identity tensor
 
 # Define the function spaces
-# Try using DG0 function space
-
 V = FunctionSpace(mesh, 'CG', 1)
 VV = VectorFunctionSpace(mesh, 'CG', 1, dim = 2)
 VVV = VectorFunctionSpace(mesh, 'CG', 1, dim = 3)
@@ -58,11 +57,18 @@ rho_i = Function(V, name = "Material density")
 rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 s = Function(V, name = "Stimulus")
-trace = Function(V, name = "Trace tr(e(u))")
+trace = Function(V, name = "Trace")
 
 x, y = SpatialCoordinate(mesh)
 rho2.interpolate(Constant(options.volume_s))
+#rho2 = 0.5 + 0.5 * sin(10*pi*x) * sin(8*pi*y)
+#rho2 = interpolate(rho2, V)
+rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
+
 rho3.interpolate(Constant(options.volume_r))
+#rho3 = 0.5 + 0.5 * cos(10*pi*x) * cos(8*pi*y)
+#rho3 = interpolate(rho3, V)
+rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 s.interpolate(Constant(options.steamy))
 
 rho = as_vector([rho2, rho3, s])
@@ -77,16 +83,14 @@ lagrange_s = Constant(options.lagrange_s)
 # Total volume of the domain |omega|
 omega = assemble(interpolate(Constant(1.0), V) * dx)
 
-delta = Constant(1.0e-3)
+delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
 kappa_d_e = Constant(kappa / epsilon)
 kappa_m_e = Constant(kappa * epsilon)
 
-# Define the boundary/traction force and stimulus
+# Define the traction force and predescribed displacement
+u_star = Constant((0, 1.0))
 f = Constant((0, -1.0))
-e1 = Constant((1, 0))
-e2 = Constant((0, 1))
-S = -1 * outer(e1, e1) + outer(e2, e2)
 
 # Young's modulus of the beam and poisson ratio
 E_v = Constant(delta)
@@ -125,7 +129,7 @@ def h_r(rho):
 	return pow(rho.sub(1), options.power_p)
 
 def s_s(rho):
-	return rho.sub(2)
+	return pow(rho.sub(2), options.power_q)
 
 # Define the double-well potential function
 # W(x, y) = (x + y)^q * (1 - x)^q * (1 - y)^q
@@ -142,26 +146,42 @@ def sigma_A(A, Id):
 
 # Define the stress tensor sigma_v(u) for void
 def sigma_v(u, Id):
-	return lambda_v * tr(epsilon(u)) * Id + 2 * mu_v * epsilon(u)
+	return lambda_v * div(u) * Id + 2 * mu_v * epsilon(u)
 
 # Define the stress tensor sigma_s(u) for structural material
 def sigma_s(u, Id):
-	return lambda_s * tr(epsilon(u)) * Id + 2 * mu_s * epsilon(u)
+	return lambda_s * div(u) * Id + 2 * mu_s * epsilon(u)
 
 # Define the stress tensor sigma_r(u) for responsive material
 def sigma_r(u, Id):
-	return lambda_r * tr(epsilon(u)) * Id + 2 * mu_r * epsilon(u)
+	return lambda_r * div(u) * Id + 2 * mu_r * epsilon(u)
+
+
+def updatels(lagrange_s, vol):
+	if assemble(v_s(rho) * dx) > vol:
+		lagrange_s = lagrange_s * 2
+	if assemble(v_s(rho) * dx) < vol:
+		lagrange_s = lagrange_s / 2
+	return lagrange_s
+
+def updatelr(lagrange_r, vol):
+	if assemble(v_r(rho) * dx) > vol:
+		lagrange_r = lagrange_r * 2
+	if assemble(v_r(rho) * dx) < vol:
+		lagrange_r = lagrange_r / 2
+	return lagrange_r
 
 # Define test function and beam displacement
 v = TestFunction(VV)
 u = Function(VV, name = "Displacement")
+us = Function(VV, name = "Displacement")
 p = Function(VV, name = "Adjoint variable")
 
 # The left side of the beam is clamped
 bcs = DirichletBC(VV, Constant((0, 0)), 7)
 
 # Define the objective function
-J = inner(f, u) * ds(8)
+J = 0.5 * inner(u - u_star, u - u_star) * dx(4)
 func1 = kappa_d_e * W(rho) * dx
 
 func2_sub1 = inner(grad(v_v(rho)), grad(v_v(rho))) * dx
@@ -170,11 +190,11 @@ func2_sub3 = inner(grad(v_r(rho)), grad(v_r(rho))) * dx
 
 func2 = kappa_m_e * (func2_sub1 + func2_sub2 + func2_sub3)
 
-func3 = lagrange_s * v_s(rho) * dx
-func4 = lagrange_r * v_r(rho) * dx
+func3 = updatels(lagrange_s, options.volume_s) * v_s(rho) * dx
+func4 = updatelr(lagrange_r, options.volume_r) * v_r(rho) * dx
 
-func5 = inner(v_v(rho), pow(s_s(rho), 2)) * dx
-func6 = inner(v_s(rho), pow(s_s(rho), 2)) * dx
+func5 = pow(v_v(rho), 2) * pow(s_s(rho), 2) * dx
+func6 = pow(v_s(rho), 2) * pow(s_s(rho), 2) * dx
 
 # Objective function + Modica-Mortola functional
 P = func1 + func2 + func3 + func4 + func5 + func6
@@ -186,19 +206,18 @@ a_forward_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(v)) * dx
 a_forward_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(v)) * dx
 a_forward = a_forward_v + a_forward_s + a_forward_r
 
-L_forward_r = s_s(rho) * h_r(rho) * inner(sigma_A(S, Id), epsilon(v)) * dx
-L_forward = inner(f, v) * ds(8) + L_forward_r
+L_forward = inner(f, v) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
+L_forward_s = s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 R_fwd = a_forward - L_forward
+R_fwd_s = a_forward - L_forward_s
 
 # Define the Lagrangian
-# The problem is self-adjoint so we replace langrange multiplier(p) with u
 a_lagrange_v = h_v(rho) * inner(sigma_v(u, Id), epsilon(p)) * dx
 a_lagrange_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(p)) * dx
 a_lagrange_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(p)) * dx
 a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
 
-L_lagrange_r = s_s(rho) * h_r(rho) * inner(sigma_A(S, Id), epsilon(p)) * dx
-L_lagrange = inner(f, p) * ds(8) + L_lagrange_r
+L_lagrange = inner(f, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
 R_lagrange = a_lagrange - L_lagrange
 L = JJ - R_lagrange
 
@@ -208,12 +227,14 @@ a_adjoint_s = h_s(rho) * inner(sigma_s(v, Id), epsilon(p)) * dx
 a_adjoint_r = h_r(rho) * inner(sigma_r(v, Id), epsilon(p)) * dx
 a_adjoint = a_adjoint_v + a_adjoint_s + a_adjoint_r
 
-L_adjoint = inner(f, v) * ds(8)
+L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint - L_adjoint
 
 # Beam .pvd file for saving designs
 beam = File(options.output + '/beam.pvd')
 dJdrho2 = Function(V)
+rho_res = Function(V, name = "Responsive")
+rho_str = Function(V, name = "Structural")
 dJdrho3 = Function(V)
 dJds = Function(V)
 stimulus = Function(V, name = "Stimulus")
@@ -247,13 +268,15 @@ def FormObjectiveGradient(tao, x, G):
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
 		stimulus.interpolate(rho.sub(2))
 		trace.interpolate(tr(epsilon(u)))
-		rho2.interpolate(rho.sub(0))
-		rho3.interpolate(rho.sub(1))
-		beam.write(rho_i, stimulus, rho2, rho3, trace, u, time = i)
+		rho_str.interpolate(rho.sub(0))
+		rho_res.interpolate(rho.sub(1))
+		solve(R_fwd_s == 0, u, bcs = bcs)
+		beam.write(rho_i, stimulus, rho_str, rho_res, trace, u, time = i)
 
 	with rho.dat.vec as rho_vec:
 		rho_vec.set(0.0)
 		rho_vec.axpy(1.0, x)
+
 
 	# Solve forward PDE
 	solve(R_fwd == 0, u, bcs = bcs)
@@ -266,9 +289,12 @@ def FormObjectiveGradient(tao, x, G):
 	# print("The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3 and s
-	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))))
-	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))))
-	dJds.interpolate(assemble(derivative(L, rho.sub(2))))
+	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
+	dJdrho2.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+
+	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
+	dJdrho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+	dJds.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
 	G.setValues(index_3, dJdrho3.vector().array())

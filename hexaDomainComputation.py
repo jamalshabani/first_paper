@@ -166,6 +166,9 @@ def sigma_s(u, Id):
 def sigma_r(u, Id):
 	return lambda_r * div(u) * Id + 2 * mu_r * epsilon(u)
 
+
+# Update Lagrange multipliers
+
 # Define test function and beam displacement
 vxx = TestFunction(VV)
 vxy = TestFunction(VV)
@@ -341,6 +344,8 @@ for i in range(N):
 		index_syx.append(i)
 
 def FormObjectiveGradient(tao, x, G):
+
+	print(type(x))
 
 	# Print volume fraction of structural material
 	volume_s = assemble(v_s(rho) * dx)/omega
