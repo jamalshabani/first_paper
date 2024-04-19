@@ -227,6 +227,7 @@ beam = File(options.output + '/beam.pvd')
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 rho_res = Function(V, name = "Responsive")
 rho_str = Function(V, name = "Structural")
+rho_void = Function(V, name = "Void")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 dJds = Function(V)
 stimulus = Function(V, name = "Stimulus")
@@ -268,9 +269,12 @@ def FormObjectiveGradient(tao, x, G):
 
 		rho_res.interpolate(rho.sub(1))
 		rho_res.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+
+		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
+		rho_void.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 	
 		solve(R_fwd_s == 0, u, bcs = bcs)
-		beam.write(rho_i, stimulus, rho_str, rho_res, u, time = i)
+		beam.write(rho_i, stimulus, rho_str, rho_res, rho_void, u, time = i)
 		# print(assemble(dJdrho2 * dx))
 		# print(assemble(dJdrho3 * dx))
 		#grad.write(dJdrho2, dJdrho3, time = i)
