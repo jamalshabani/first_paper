@@ -5,9 +5,8 @@ def parse():
 	parser.add_argument('-tao_max_funcs', '--tao_max_funcs', type = int, default = 10000, help = 'TAO maximum functions evaluations')
 	parser.add_argument('-tao_monitor', '--tao_monitor', action = 'store_true', help = 'TAO monitor')
 	parser.add_argument('-tao_ls_monitor', '--tao_ls_monitor', action = 'store_true', help = 'TAO line search monitor')
-	parser.add_argument('-ls', '--lagrange_s', type = float, default = 5.0, help = 'Lagrange multiplier for structural material')
-	parser.add_argument('-lr', '--lagrange_r', type = float, default = 0.5, help = 'Lagrange multiplier for responsive material')
-	parser.add_argument('-tao_bncg_alpha', '--tao_bncg_alpha', type = float, default = 0.5, help = 'Scalar preconditioning')
+	parser.add_argument('-ls', '--lagrange_s', type = float, default = 1.0, help = 'Lagrange multiplier for structural material')
+	parser.add_argument('-lr', '--lagrange_r', type = float, default = 5.0, help = 'Lagrange multiplier for responsive material')
 	parser.add_argument('-tao_converged_reason', '--tao_converged_reason', action = 'store_true', help = 'TAO convergence reason')
 	parser.add_argument('-tao_ls_type', '--tao_ls_type', type = str, default = 'more-thuente', help = "TAO line search")
 	parser.add_argument('-tao_view', '--tao_view', action = 'store_true', help = "View convergence details")
@@ -15,13 +14,13 @@ def parse():
 	parser.add_argument('-tao_gatol', '--tao_gatol', type = float, default = 1.0e-7, help = 'Stop if norm of gradient is less than this')
 	parser.add_argument('-tao_grtol', '--tao_grtol', type = float, default = 1.0e-7, help = 'Stop if relative norm of gradient is less than this')
 	parser.add_argument('-tao_gttol', '--tao_gttol', type = float, default = 1.0e-7, help = 'Stop if norm of gradient is reduced by this factor')
-	parser.add_argument('-vs', '--volume_s', type = float, default = 0.4, help = 'Volume percentage for structural material')
-	parser.add_argument('-vr', '--volume_r', type = float, default = 0.4, help = 'Volume percentage for responsive material')
-	parser.add_argument('-k', '--kappa', type = float, default = 1.0e-2, help = 'Weight of Modica-Mortola')
-	parser.add_argument('-e', '--epsilon', type = float, default = 5.0e-3, help = 'Phase-field regularization parameter')
+	parser.add_argument('-vs', '--volume_s', type = float, default = 0.3, help = 'Target volume for structural material')
+	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Target volume for responsive material')
+	parser.add_argument('-k', '--kappa', type = float, default = 5.0e-3, help = 'Weight of Modica-Mortola')
+	parser.add_argument('-e', '--epsilon', type = float, default = 4.0e-3, help = 'Phase-field regularization parameter')
 	parser.add_argument('-o', '--output', type = str, default = 'output1', help = 'Output folder')
-	parser.add_argument('-m', '--mesh', type = str, default = 'motion_mesh1.msh', help = 'Dimensions of meshed beam')
-	parser.add_argument('-es', '--esmodulus', type = float, default = 0.1, help = 'Elastic Modulus for structural material')
+	parser.add_argument('-m', '--mesh', type = str, default = 'motion.msh', help = 'Design domain mesh')
+	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation')
 	parser.add_argument('-q', '--power_q', type = float, default = 2.0, help = 'Power for multiple-well function')
@@ -57,23 +56,15 @@ rho_i = Function(V, name = "Material density")
 rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 s = Function(V, name = "Stimulus")
-trace = Function(V, name = "Trace")
 
 x, y = SpatialCoordinate(mesh)
 rho2.interpolate(Constant(options.volume_s))
-#rho2 = 0.5 + 0.5 * sin(10*pi*x) * sin(8*pi*y)
-#rho2 = interpolate(rho2, V)
-rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
-
 rho3.interpolate(Constant(options.volume_r))
-#rho3 = 0.5 + 0.5 * cos(10*pi*x) * cos(8*pi*y)
-#rho3 = interpolate(rho3, V)
-rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 s.interpolate(Constant(options.steamy))
 
 rho = as_vector([rho2, rho3, s])
 rho = interpolate(rho, VVV)
-###### End Initial Design #####
+###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
 kappa = Constant(options.kappa)
@@ -88,9 +79,9 @@ epsilon = Constant(options.epsilon)
 kappa_d_e = Constant(kappa / epsilon)
 kappa_m_e = Constant(kappa * epsilon)
 
-# Define the traction force and predescribed displacement
+# Define predescribed displacement
 u_star = Constant((0, 1.0))
-f = Constant((0, -1.0))
+f = Constant((0, 0.0))
 
 # Young's modulus of the beam and poisson ratio
 E_v = Constant(delta)
@@ -129,7 +120,7 @@ def h_r(rho):
 	return pow(rho.sub(1), options.power_p)
 
 def s_s(rho):
-	return pow(rho.sub(2), options.power_q)
+	return rho.sub(2)
 
 # Define the double-well potential function
 # W(x, y) = (x + y)^q * (1 - x)^q * (1 - y)^q
@@ -190,23 +181,24 @@ func2_sub3 = inner(grad(v_r(rho)), grad(v_r(rho))) * dx
 
 func2 = kappa_m_e * (func2_sub1 + func2_sub2 + func2_sub3)
 
-func3 = updatels(lagrange_s, options.volume_s) * v_s(rho) * dx
-func4 = updatelr(lagrange_r, options.volume_r) * v_r(rho) * dx
+func3 = lagrange_s * v_s(rho) * dx
+func4 = lagrange_r * v_r(rho) * dx
 
+# stimulus penalty
 func5 = pow(v_v(rho), 2) * pow(s_s(rho), 2) * dx
 func6 = pow(v_s(rho), 2) * pow(s_s(rho), 2) * dx
 
 # Objective function + Modica-Mortola functional
-P = func1 + func2 + func3 + func4 + func5 + func6
+P = func1 + func2 + func5 + func6
 JJ = J + P
 
-# Define the weak form for forward PDE
+# Define the weak form of the state PDE
 a_forward_v = h_v(rho) * inner(sigma_v(u, Id), epsilon(v)) * dx
 a_forward_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(v)) * dx
 a_forward_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(v)) * dx
 a_forward = a_forward_v + a_forward_s + a_forward_r
 
-L_forward = inner(f, v) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
+L_forward = -inner(u_star, v) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 L_forward_s = s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 R_fwd = a_forward - L_forward
 R_fwd_s = a_forward - L_forward_s
@@ -217,11 +209,11 @@ a_lagrange_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(p)) * dx
 a_lagrange_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(p)) * dx
 a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
 
-L_lagrange = inner(f, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
+L_lagrange = -inner(u_star, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
 R_lagrange = a_lagrange - L_lagrange
 L = JJ - R_lagrange
 
-# Define the weak form for adjoint PDE
+# Define the weak form of the adjoint PDE
 a_adjoint_v = h_v(rho) * inner(sigma_v(v, Id), epsilon(p)) * dx
 a_adjoint_s = h_s(rho) * inner(sigma_s(v, Id), epsilon(p)) * dx
 a_adjoint_r = h_r(rho) * inner(sigma_r(v, Id), epsilon(p)) * dx
@@ -232,10 +224,10 @@ R_adj = a_adjoint - L_adjoint
 
 # Beam .pvd file for saving designs
 beam = File(options.output + '/beam.pvd')
-dJdrho2 = Function(V)
+dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 rho_res = Function(V, name = "Responsive")
 rho_str = Function(V, name = "Structural")
-dJdrho3 = Function(V)
+dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 dJds = Function(V)
 stimulus = Function(V, name = "Stimulus")
 
@@ -266,12 +258,22 @@ def FormObjectiveGradient(tao, x, G):
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
+		rho_i.interpolate(Constant(-1.0), mesh.measure_set("cell", 4))
+
 		stimulus.interpolate(rho.sub(2))
-		trace.interpolate(tr(epsilon(u)))
+		stimulus.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+
 		rho_str.interpolate(rho.sub(0))
+		rho_str.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
+
 		rho_res.interpolate(rho.sub(1))
+		rho_res.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+	
 		solve(R_fwd_s == 0, u, bcs = bcs)
-		beam.write(rho_i, stimulus, rho_str, rho_res, trace, u, time = i)
+		beam.write(rho_i, stimulus, rho_str, rho_res, u, time = i)
+		# print(assemble(dJdrho2 * dx))
+		# print(assemble(dJdrho3 * dx))
+		#grad.write(dJdrho2, dJdrho3, time = i)
 
 	with rho.dat.vec as rho_vec:
 		rho_vec.set(0.0)
@@ -288,12 +290,12 @@ def FormObjectiveGradient(tao, x, G):
 	# objective_value = assemble(J)
 	# print("The value of objective function is {}".format(objective_value))
 
-	# Compute gradiet w.r.t rho2 and rho3 and s
+	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
-	dJdrho2.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-
+	dJdrho2.interpolate(dJdrho2 - assemble(dJdrho2 * dx)/omega)
+	
 	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
-	dJdrho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+	dJdrho3.interpolate(dJdrho3 - assemble(dJdrho3 * dx)/omega)
 	dJds.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
