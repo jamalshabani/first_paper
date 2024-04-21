@@ -4,10 +4,8 @@ def parse():
 	parser.add_argument('-tao_type', '--tao_type', type = str, default = 'bncg', help = 'TAO algorithm type')
 	parser.add_argument('-tao_max_funcs', '--tao_max_funcs', type = int, default = 10000, help = 'TAO maximum functions evaluations')
 	parser.add_argument('-tao_monitor', '--tao_monitor', action = 'store_true', help = 'TAO monitor')
-	parser.add_argument('-tao_ls_monitor', '--tao_ls_monitor', action = 'store_true', help = 'TAO line search monitor')
 	parser.add_argument('-ls', '--lagrange_s', type = float, default = 1.0, help = 'Lagrange multiplier for structural material')
 	parser.add_argument('-lr', '--lagrange_r', type = float, default = 5.0, help = 'Lagrange multiplier for responsive material')
-	parser.add_argument('-tao_converged_reason', '--tao_converged_reason', action = 'store_true', help = 'TAO convergence reason')
 	parser.add_argument('-tao_ls_type', '--tao_ls_type', type = str, default = 'more-thuente', help = "TAO line search")
 	parser.add_argument('-tao_view', '--tao_view', action = 'store_true', help = "View convergence details")
 	parser.add_argument('-tao_max_it', '--tao_max_it', type = int, default = 100, help = 'Number of TAO iterations')
@@ -16,7 +14,7 @@ def parse():
 	parser.add_argument('-tao_gttol', '--tao_gttol', type = float, default = 1.0e-7, help = 'Stop if norm of gradient is reduced by this factor')
 	parser.add_argument('-vs', '--volume_s', type = float, default = 0.3, help = 'Target volume for structural material')
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Target volume for responsive material')
-	parser.add_argument('-k', '--kappa', type = float, default = 5.0e-3, help = 'Weight of Modica-Mortola')
+	parser.add_argument('-k', '--kappa', type = float, default = 5.0e-3, help = 'Weight of perimeter penalization')
 	parser.add_argument('-e', '--epsilon', type = float, default = 4.0e-3, help = 'Phase-field regularization parameter')
 	parser.add_argument('-o', '--output', type = str, default = 'output1', help = 'Output folder')
 	parser.add_argument('-m', '--mesh', type = str, default = 'motion.msh', help = 'Design domain mesh')
@@ -148,20 +146,6 @@ def sigma_r(u, Id):
 	return lambda_r * div(u) * Id + 2 * mu_r * epsilon(u)
 
 
-def updatels(lagrange_s, vol):
-	if assemble(v_s(rho) * dx) > vol:
-		lagrange_s = lagrange_s * 2
-	if assemble(v_s(rho) * dx) < vol:
-		lagrange_s = lagrange_s / 2
-	return lagrange_s
-
-def updatelr(lagrange_r, vol):
-	if assemble(v_r(rho) * dx) > vol:
-		lagrange_r = lagrange_r * 2
-	if assemble(v_r(rho) * dx) < vol:
-		lagrange_r = lagrange_r / 2
-	return lagrange_r
-
 # Define test function and beam displacement
 v = TestFunction(VV)
 u = Function(VV, name = "Displacement")
@@ -189,11 +173,11 @@ func5 = pow(v_v(rho), 2) * pow(s_s(rho), 2) * dx
 func6 = pow(v_s(rho), 2) * pow(s_s(rho), 2) * dx
 
 # Objective function + Modica-Mortola functional
-P = func1 + func2 + func5 + func6
+P = func1 + func2 + func3 + func4 + func5 + func6
 JJ = J + P
 
 # Define the weak form of the state PDE
-a_forward_v = h_v(rho) * inner(sigma_v(u, Id), epsilon(v)) * dx
+a_forward_v = h_v(rho) * inner(1.0e3 * sigma_v(u, Id), epsilon(v)) * dx
 a_forward_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(v)) * dx
 a_forward_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(v)) * dx
 a_forward = a_forward_v + a_forward_s + a_forward_r
@@ -204,7 +188,7 @@ R_fwd = a_forward - L_forward
 R_fwd_s = a_forward - L_forward_s
 
 # Define the Lagrangian
-a_lagrange_v = h_v(rho) * inner(sigma_v(u, Id), epsilon(p)) * dx
+a_lagrange_v = h_v(rho) * inner(1.0e3 * sigma_v(u, Id), epsilon(p)) * dx
 a_lagrange_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(p)) * dx
 a_lagrange_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(p)) * dx
 a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
@@ -214,7 +198,7 @@ R_lagrange = a_lagrange - L_lagrange
 L = JJ - R_lagrange
 
 # Define the weak form of the adjoint PDE
-a_adjoint_v = h_v(rho) * inner(sigma_v(v, Id), epsilon(p)) * dx
+a_adjoint_v = h_v(rho) * inner(1.0e3 * sigma_v(v, Id), epsilon(p)) * dx
 a_adjoint_s = h_s(rho) * inner(sigma_s(v, Id), epsilon(p)) * dx
 a_adjoint_r = h_r(rho) * inner(sigma_r(v, Id), epsilon(p)) * dx
 a_adjoint = a_adjoint_v + a_adjoint_s + a_adjoint_r
@@ -291,15 +275,15 @@ def FormObjectiveGradient(tao, x, G):
 	solve(R_adj == 0, p, bcs = bcs)
 
 	# Evaluate the objective function
-	# objective_value = assemble(J)
-	# print("The value of objective function is {}".format(objective_value))
+	objective_value = assemble(J)
+	print("The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
-	dJdrho2.interpolate(dJdrho2 - assemble(dJdrho2 * dx)/omega)
+	#dJdrho2.interpolate(dJdrho2 - assemble(dJdrho2 * dx)/omega)
 	
 	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
-	dJdrho3.interpolate(dJdrho3 - assemble(dJdrho3 * dx)/omega)
+	#dJdrho3.interpolate(dJdrho3 - assemble(dJdrho3 * dx)/omega)
 	dJds.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
