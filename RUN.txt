@@ -1,0 +1,3 @@
+
+Figure 1 & 2: 
+python3 firstComputation.py -tao_monitor -tao_max_it 5000 -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 3.5 -ls -0.008 -k 5.0e-3 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 2.0
