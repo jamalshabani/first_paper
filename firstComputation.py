@@ -280,10 +280,8 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
-	#dJdrho2.interpolate(dJdrho2 - assemble(dJdrho2 * dx)/omega)
-	
+
 	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
-	#dJdrho3.interpolate(dJdrho3 - assemble(dJdrho3 * dx)/omega)
 	dJds.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
