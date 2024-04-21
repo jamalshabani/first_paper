@@ -155,7 +155,7 @@ p = Function(VV, name = "Adjoint variable")
 # The left side of the beam is clamped
 bcs = DirichletBC(VV, Constant((0, 0)), 7)
 
-# Define the objective function
+# Define the objective function: no pernalty yet
 J = 0.5 * inner(u - u_star, u - u_star) * dx(4)
 func1 = kappa_d_e * W(rho) * dx
 
@@ -168,7 +168,7 @@ func2 = kappa_m_e * (func2_sub1 + func2_sub2 + func2_sub3)
 func3 = lagrange_s * v_s(rho) * dx
 func4 = lagrange_r * v_r(rho) * dx
 
-# stimulus penalty
+# Stimulus penalty
 func5 = pow(v_v(rho), 2) * pow(s_s(rho), 2) * dx
 func6 = pow(v_s(rho), 2) * pow(s_s(rho), 2) * dx
 
@@ -256,12 +256,11 @@ def FormObjectiveGradient(tao, x, G):
 
 		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
 		rho_void.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-	
+
+		# Save all files for PARAVIEW
 		solve(R_fwd_s == 0, u, bcs = bcs)
 		beam.write(rho_i, stimulus, rho_str, rho_res, rho_void, u, time = i)
-		# print(assemble(dJdrho2 * dx))
-		# print(assemble(dJdrho3 * dx))
-		#grad.write(dJdrho2, dJdrho3, time = i)
+
 
 	with rho.dat.vec as rho_vec:
 		rho_vec.set(0.0)
@@ -274,7 +273,7 @@ def FormObjectiveGradient(tao, x, G):
 	# Solve adjoint PDE
 	solve(R_adj == 0, p, bcs = bcs)
 
-	# Evaluate the objective function
+	# Evaluate and print the objective function value
 	objective_value = assemble(J)
 	print("The value of objective function is {}".format(objective_value))
 
