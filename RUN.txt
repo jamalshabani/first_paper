@@ -3,14 +3,14 @@ Figure 1 & 2:
 
 Convergence summary:
      The initial value of objective function: 0.05495890199337699
-     The final value of objective function: 0.1622046021468234
+     The final value of objective function: 0.005910123309284734
      Final volume percentages:
-          Structural material: 32%
-          Responsive material: 34%
-     Number of iterations: 1696
-     Objective function evaluations: 1737
-     Gradient evaluations: 1737
-     Time: 694 seconds
+          Structural material: 20%
+          Responsive material: 12%
+     Number of iterations: 1648
+     Objective function evaluations: 1695
+     Gradient evaluations: 1695
+     Time: 677 seconds
      Tolerance: 1.0e-7
      
 
