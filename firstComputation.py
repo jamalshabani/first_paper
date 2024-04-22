@@ -52,19 +52,15 @@ M = len(mesh_coordinates)
 
 rho =  Function(VVV, name = "Design variable")
 rho_i = Function(V, name = "Material density")
-# rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
-# rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
-# s = Function(V, name = "Stimulus")
 
 x, y = SpatialCoordinate(mesh)
 rho2 = assemble(Function(V, name = "Structural material").interpolate(Constant(options.volume_s)))
+rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 rho3 = assemble(Function(V, name = "Responsive material").interpolate(Constant(options.volume_r)))
+rho2.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 s    = assemble(Function(V, name = "Stimulus").interpolate(Constant(options.steamy)))
 
-
-# rho = as_vector([rho2, rho3, s])
-# rho = interpolate(rho, VVV)
-rho = assemble(Function(VVV).interpolate(as_vector([options.volume_s,options.volume_r,options.steamy])))
+rho = assemble(Function(VVV).interpolate(as_vector([options.volume_s, options.volume_r, options.steamy])))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -246,21 +242,11 @@ def FormObjectiveGradient(tao, x, G):
 
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
-		### BB I don't understand this
 		rho_i.assign(rho.sub(1) - rho.sub(0))
-		# rho_i.interpolate(Constant(-1.0), mesh.measure_set("cell", 4))
-
 		stimulus.assign(rho.sub(2))
-		# stimulus.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-
 		rho_str.assign(rho.sub(0))
-		# rho_str.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
-
 		rho_res.assign(rho.sub(1))
-		# rho_res.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-
 		rho_void.assign(1 - rho.sub(0) - rho.sub(1))
-		# rho_void.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
 		# Save all files for PARAVIEW
 		solve(R_fwd_s == 0, u, bcs = bcs)
@@ -284,8 +270,9 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.assign(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
-
+	dJdrho2.assign(Constant(0.0), mesh.measure_set("cell", 4))
 	dJdrho3.assign(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
+	dJdrho3.assign(Constant(0.0), mesh.measure_set("cell", 4))
 	dJds.assign(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
@@ -300,8 +287,8 @@ def FormObjectiveGradient(tao, x, G):
 # ub = as_vector((1, 1, 1))
 # lb = interpolate(lb, VVV)
 # ub = interpolate(ub, VVV)
-lb = assemble(Function(VVV).interpolate(as_vector([0,0,-1])))
-ub = assemble(Function(VVV).interpolate(as_vector([1,1,-1])))
+lb = assemble(Function(VVV).interpolate(as_vector([0, 0, -1])))
+ub = assemble(Function(VVV).interpolate(as_vector([1, 1, -1])))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
