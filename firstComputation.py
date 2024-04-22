@@ -29,6 +29,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -51,17 +52,19 @@ M = len(mesh_coordinates)
 
 rho =  Function(VVV, name = "Design variable")
 rho_i = Function(V, name = "Material density")
-rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
-rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
-s = Function(V, name = "Stimulus")
+# rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
+# rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
+# s = Function(V, name = "Stimulus")
 
 x, y = SpatialCoordinate(mesh)
-rho2.interpolate(Constant(options.volume_s))
-rho3.interpolate(Constant(options.volume_r))
-s.interpolate(Constant(options.steamy))
+rho2 = assemble(Function(V, name = "Structural material").interpolate(Constant(options.volume_s)))
+rho3 = assemble(Function(V, name = "Responsive material").interpolate(Constant(options.volume_r)))
+s    = assemble(Function(V, name = "Stimulus").interpolate(Constant(options.steamy)))
 
-rho = as_vector([rho2, rho3, s])
-rho = interpolate(rho, VVV)
+
+# rho = as_vector([rho2, rho3, s])
+# rho = interpolate(rho, VVV)
+rho = assemble(Function(VVV).interpolate(as_vector([options.volume_s,options.volume_r,options.steamy])))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -70,7 +73,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = CellVolume(mesh)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -207,7 +211,7 @@ L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint - L_adjoint
 
 # Beam .pvd file for saving designs
-beam = File(options.output + '/beam.pvd')
+beam = VTKFile(options.output + '/beam.pvd')
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 rho_res = Function(V, name = "Responsive")
 rho_str = Function(V, name = "Structural")
@@ -242,20 +246,21 @@ def FormObjectiveGradient(tao, x, G):
 
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
-		rho_i.interpolate(rho.sub(1) - rho.sub(0))
-		rho_i.interpolate(Constant(-1.0), mesh.measure_set("cell", 4))
+		### BB I don't understand this
+		rho_i.assign(rho.sub(1) - rho.sub(0))
+		# rho_i.interpolate(Constant(-1.0), mesh.measure_set("cell", 4))
 
-		stimulus.interpolate(rho.sub(2))
-		stimulus.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+		stimulus.assign(rho.sub(2))
+		# stimulus.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
-		rho_str.interpolate(rho.sub(0))
-		rho_str.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
+		rho_str.assign(rho.sub(0))
+		# rho_str.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 
-		rho_res.interpolate(rho.sub(1))
-		rho_res.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+		rho_res.assign(rho.sub(1))
+		# rho_res.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
-		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
-		rho_void.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+		rho_void.assign(1 - rho.sub(0) - rho.sub(1))
+		# rho_void.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
 		# Save all files for PARAVIEW
 		solve(R_fwd_s == 0, u, bcs = bcs)
@@ -278,10 +283,10 @@ def FormObjectiveGradient(tao, x, G):
 	print("The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3
-	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
+	dJdrho2.assign(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
 
-	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
-	dJds.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
+	dJdrho3.assign(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
+	dJds.assign(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
 	G.setValues(index_3, dJdrho3.vector().array())
@@ -291,10 +296,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0, -1))
-ub = as_vector((1, 1, 1))
-lb = interpolate(lb, VVV)
-ub = interpolate(ub, VVV)
+# lb = as_vector((0, 0, -1))
+# ub = as_vector((1, 1, 1))
+# lb = interpolate(lb, VVV)
+# ub = interpolate(ub, VVV)
+lb = assemble(Function(VVV).interpolate(as_vector([0,0,-1])))
+ub = assemble(Function(VVV).interpolate(as_vector([1,1,-1])))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
