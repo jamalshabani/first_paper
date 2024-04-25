@@ -30,3 +30,18 @@
           Gradient evaluations: 844
           Time: 339 seconds
           Tolerance: 1.0e-7
+
+     Stiffness ratio Es/Er = 100.0
+          python3 firstComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 1.0e-1 -es 1.0e1 -lr 0.14 -ls 0.12 -vr 0.3 -vs 0.3 -k 5.0e-4 -e 4.0e-3 -q 1.0"
+
+     Convergence summary:
+          The initial value of objective function: 0.15728696699491168
+          The final value of objective function: 0.009624813360684742
+          Final volume percentages:
+               Structural material: 31%
+               Responsive material: 10%
+          Number of iterations: 4944
+          Objective function evaluations: 4975
+          Gradient evaluations: 4975
+          Time: 2037 seconds
+          Tolerance: 1.0e-7
