@@ -1,4 +1,4 @@
-1. Cantilever beam with 1 predescribed displacement
+1. Cantilever beam with 1 predescribed displacement:
 
      Stiffness ratio Es/Er = 0.01
           python3 firstComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 4.0 -ls -0.030 -k 6.0e-3 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
@@ -45,3 +45,24 @@
           Gradient evaluations: 4975
           Time: 2037 seconds
           Tolerance: 1.0e-7
+
+2. Cantilever beam with 2 predescribed displacements:
+
+
+
+3. Hexagonal domain with 3 predescribed displacements:
+
+     Stiffness ratio Es/Er = 0.01
+          python3 hexagonal.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e-2 -es 1.0e-4 -lr 0.10 -ls 0.10 -k 5.0e-4 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
+
+     Convergence summary:
+          The initial value of objective function: 31.778698197867236
+          The final value of objective function: 0.0049218876337223045
+          Final volume percentages:
+               Structural material: 22%
+               Responsive material: 21%
+          Number of iterations: 2850
+          Objective function evaluations: 2850
+          Gradient evaluations: 2850
+          Time: 3690 seconds
+          Torelance: 1.0e-7
