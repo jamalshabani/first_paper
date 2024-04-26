@@ -239,13 +239,13 @@ a_forward_s_yx = h_s(rho) * inner(sigma_s(uyx, Id), epsilon(vyx)) * dx
 a_forward_r_yx = h_r(rho) * inner(sigma_r(uyx, Id), epsilon(vyx)) * dx
 a_forward_yx = a_forward_v_yx + a_forward_s_yx + a_forward_r_yx
 
-L_forward_xx = inner(fxx, vxx) * ds(8) + s_xx(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(vxx)) * dx
-L_forward_xy = inner(fxy, vxy) * ds(9) + s_xy(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(vxy)) * dx
-L_forward_yx = inner(fyx, vyx) * ds(10) + s_yx(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(vyx)) * dx
+L_forward_xx = inner(fxx, vxx) * ds(8) + s_xx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxx)) * dx
+L_forward_xy = inner(fxy, vxy) * ds(9) + s_xy(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxy)) * dx
+L_forward_yx = inner(fyx, vyx) * ds(10) + s_yx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vyx)) * dx
 
-L_forward_xx_s = s_xx(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(vxx)) * dx
-L_forward_xy_s = s_xy(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(vxy)) * dx
-L_forward_yx_s = s_yx(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(vyx)) * dx
+L_forward_xx_s = s_xx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxx)) * dx
+L_forward_xy_s = s_xy(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxy)) * dx
+L_forward_yx_s = s_yx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vyx)) * dx
 
 R_fwd_xx = a_forward_xx - L_forward_xx
 R_fwd_xy = a_forward_xy - L_forward_xy
@@ -258,23 +258,23 @@ R_fwd_yx_s = a_forward_yx - L_forward_yx_s
 
 # Define the Lagrangian
 a_lagrange_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(uxx, Id), epsilon(pxx)) * dx
-a_lagrange_s_xx = h_s(rho) * inner(1.0e3 * sigma_s(uxx, Id), epsilon(pxx)) * dx
-a_lagrange_r_xx = h_r(rho) * inner(1.0e3 * sigma_r(uxx, Id), epsilon(pxx)) * dx
+a_lagrange_s_xx = h_s(rho) * inner(sigma_s(uxx, Id), epsilon(pxx)) * dx
+a_lagrange_r_xx = h_r(rho) * inner(sigma_r(uxx, Id), epsilon(pxx)) * dx
 a_lagrange_xx = a_lagrange_v_xx + a_lagrange_s_xx + a_lagrange_r_xx
 
 a_lagrange_v_xy = h_v(rho) * inner(1.0e3 * sigma_v(uxy, Id), epsilon(pxy)) * dx
-a_lagrange_s_xy = h_s(rho) * inner(1.0e3 * sigma_s(uxy, Id), epsilon(pxy)) * dx
-a_lagrange_r_xy = h_r(rho) * inner(1.0e3 * sigma_r(uxy, Id), epsilon(pxy)) * dx
+a_lagrange_s_xy = h_s(rho) * inner(sigma_s(uxy, Id), epsilon(pxy)) * dx
+a_lagrange_r_xy = h_r(rho) * inner(sigma_r(uxy, Id), epsilon(pxy)) * dx
 a_lagrange_xy = a_lagrange_v_xy + a_lagrange_s_xy + a_lagrange_r_xy
 
 a_lagrange_v_yx = h_v(rho) * inner(1.0e3 * sigma_v(uyx, Id), epsilon(pyx)) * dx
-a_lagrange_s_yx = h_s(rho) * inner(1.0e3 * sigma_s(uyx, Id), epsilon(pyx)) * dx
-a_lagrange_r_yx = h_r(rho) * inner(1.0e3 * sigma_r(uyx, Id), epsilon(pyx)) * dx
+a_lagrange_s_yx = h_s(rho) * inner(sigma_s(uyx, Id), epsilon(pyx)) * dx
+a_lagrange_r_yx = h_r(rho) * inner(sigma_r(uyx, Id), epsilon(pyx)) * dx
 a_lagrange_yx = a_lagrange_v_yx + a_lagrange_s_yx + a_lagrange_r_yx
 
-L_lagrange_xx = inner(fxx, pxx) * ds(8) + s_xx(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(pxx)) * dx
-L_lagrange_xy = inner(fxy, pxy) * ds(9) + s_xy(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(pxy)) * dx
-L_lagrange_yx = inner(fyx, pyx) * ds(10) + s_yx(rho) * h_r(rho) * inner(1.0e3 * sigma_A(Id, Id), epsilon(pyx)) * dx
+L_lagrange_xx = inner(fxx, pxx) * ds(8) + s_xx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pxx)) * dx
+L_lagrange_xy = inner(fxy, pxy) * ds(9) + s_xy(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pxy)) * dx
+L_lagrange_yx = inner(fyx, pyx) * ds(10) + s_yx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pyx)) * dx
 
 R_lagrange_xx = a_lagrange_xx - L_lagrange_xx
 R_lagrange_xy = a_lagrange_xy - L_lagrange_xy
@@ -285,18 +285,18 @@ L = JJ - R_lagrange
 
 # Define the weak form for adjoint PDE
 a_adjoint_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(vxx, Id), epsilon(pxx)) * dx
-a_adjoint_s_xx = h_s(rho) * inner(1.0e3 * sigma_s(vxx, Id), epsilon(pxx)) * dx
-a_adjoint_r_xx = h_r(rho) * inner(1.0e3 * sigma_r(vxx, Id), epsilon(pxx)) * dx
+a_adjoint_s_xx = h_s(rho) * inner(sigma_s(vxx, Id), epsilon(pxx)) * dx
+a_adjoint_r_xx = h_r(rho) * inner(sigma_r(vxx, Id), epsilon(pxx)) * dx
 a_adjoint_xx = a_adjoint_v_xx + a_adjoint_s_xx + a_adjoint_r_xx
 
 a_adjoint_v_xy = h_v(rho) * inner(1.0e3 * sigma_v(vxy, Id), epsilon(pxy)) * dx
-a_adjoint_s_xy = h_s(rho) * inner(1.0e3 * sigma_s(vxy, Id), epsilon(pxy)) * dx
-a_adjoint_r_xy = h_r(rho) * inner(1.0e3 * sigma_r(vxy, Id), epsilon(pxy)) * dx
+a_adjoint_s_xy = h_s(rho) * inner(sigma_s(vxy, Id), epsilon(pxy)) * dx
+a_adjoint_r_xy = h_r(rho) * inner(sigma_r(vxy, Id), epsilon(pxy)) * dx
 a_adjoint_xy = a_adjoint_v_xy + a_adjoint_s_xy + a_adjoint_r_xy
 
 a_adjoint_v_yx = h_v(rho) * inner(1.0e3 * sigma_v(vyx, Id), epsilon(pyx)) * dx
-a_adjoint_s_yx = h_s(rho) * inner(1.0e3 * sigma_s(vyx, Id), epsilon(pyx)) * dx
-a_adjoint_r_yx = h_r(rho) * inner(1.0e3 * sigma_r(vyx, Id), epsilon(pyx)) * dx
+a_adjoint_s_yx = h_s(rho) * inner(sigma_s(vyx, Id), epsilon(pyx)) * dx
+a_adjoint_r_yx = h_r(rho) * inner(sigma_r(vyx, Id), epsilon(pyx)) * dx
 a_adjoint_yx = a_adjoint_v_yx + a_adjoint_s_yx + a_adjoint_r_yx
 
 L_adjoint_xx = inner(uxx - u_star_xx, vxx) * dx(4)
