@@ -1,18 +1,34 @@
 1. Cantilever beam with 1 predescribed displacement:
 
-     Stiffness ratio Er/En = 100
+     Stiffness ratio Er/En = 100.0
           python3 firstComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 4.0 -ls -0.030 -k 6.0e-3 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
 
      Convergence summary:
           The initial value of objective function: 12.789439653320635
           The final value of objective function: 0.20380437012066277
           Final volume percentages:
-               Structural material: 31%
+               Non-responsive material: 31%
                Responsive material: 36%
           Number of iterations: 1142
           Objective function evaluations: 1142
           Gradient evaluations: 1142
           Time: 482 seconds
+          Torelance: 1.0e-7
+
+
+     Stiffness ratio Er/En = 10.0
+          python3 firstComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-1 -lr 4.0 -ls 0.26 -k 6.0e-3 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
+
+     Convergence summary:
+          The initial value of objective function: 10.616980991756476
+          The final value of objective function: 0.19783545628196958
+          Final volume percentages:
+               Non-responsive material: 21%
+               Responsive material: 34%
+          Number of iterations: 1136
+          Objective function evaluations: 1171
+          Gradient evaluations: 1171
+          Time: 494 seconds
           Torelance: 1.0e-7
 
 
@@ -23,7 +39,7 @@
           The initial value of objective function: 0.05495890199337699
           The final value of objective function: 0.005910123309284734
           Final volume percentages:
-               Structural material: 18%
+               Non-responsive material: 18%
                Responsive material: 13%
           Number of iterations: 820
           Objective function evaluations: 844
@@ -38,7 +54,7 @@
           The initial value of objective function: 0.15728696699491168
           The final value of objective function: 0.009624813360684742
           Final volume percentages:
-               Structural material: 31%
+               Non-responsive material: 31%
                Responsive material: 10%
           Number of iterations: 4944
           Objective function evaluations: 4975
@@ -59,7 +75,7 @@
           The initial value of objective function: 31.778698197867236
           The final value of objective function: 0.0049218876337223045
           Final volume percentages:
-               Structural material: 22%
+               Non-responsive material: 22%
                Responsive material: 21%
           Number of iterations: 2850
           Objective function evaluations: 2850
@@ -75,7 +91,7 @@
           The initial value of objective function: 28.516415804355518
           The final value of objective function: 0.005018112179687921
           Final volume percentages:
-               Structural material: 20%
+               Non-responsive material: 20%
                Responsive material: 23%
           Number of iterations: 3735
           Objective function evaluations: 4001
