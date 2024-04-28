@@ -80,7 +80,7 @@
 
 2. Cantilever beam with 2 predescribed displacements:
 
-     Figure 6: Stiffness ratio Er/En = 100.0
+     Figure 6 & 7: Stiffness ratio Er/En = 100.0
           python3 secondComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 4.0 -ls 0.500 -k 6.0e-3 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
 
      Convergence summary:
