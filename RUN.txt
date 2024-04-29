@@ -110,6 +110,21 @@
           Time: 1098 seconds
           Torelance: 1.0e-7
 
+     Figure ??: Stiffness ratio Er/En = 0.01
+          python3 secondComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 1.0e-1 -es 1.0e1 -lr 0.025 -ls 0.14 -vr 0.3 -vs 0.3 -k 5.0e-4 -e 4.0e-3 -q 1.0
+
+     Convergence summary:
+          The initial value of objective function: 0.3464344061608282
+          The final value of objective function: 0.009624813360684742
+          Final volume percentages:
+               Non-responsive material: 34%
+               Responsive material: 22%
+          Number of iterations: 437
+          Objective function evaluations: 442
+          Gradient evaluations: 442
+          Time: 361 seconds
+          Tolerance: 1.0e-7
+
 
 
 3. Hexagonal domain with 3 predescribed displacements:
