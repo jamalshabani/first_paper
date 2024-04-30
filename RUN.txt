@@ -95,7 +95,7 @@
           Time: 466 seconds
           Torelance: 1.0e-7
 
-     Figure ? & ??: Stiffness ratio Er/En = 1.0
+     Figure (skipped: Remarkk 4): Stiffness ratio Er/En = 1.0
           python3 secondComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 5.0 -es 5.0 -lr 0.15 -ls 0.13 -vr 0.3 -vs 0.5 -k 5.0e-4 -e 4.0e-3 -q 1.0
 
      Convergence summary:
@@ -110,7 +110,7 @@
           Time: 1098 seconds
           Torelance: 1.0e-7
 
-     Figure ??: Stiffness ratio Er/En = 0.01
+     Figure 9, 11 & 11: Stiffness ratio Er/En = 0.01
           python3 secondComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 1.0e-1 -es 1.0e1 -lr 0.025 -ls 0.14 -vr 0.3 -vs 0.3 -k 5.0e-4 -e 4.0e-3 -q 1.0
 
      Convergence summary:
@@ -129,7 +129,7 @@
 
 3. Hexagonal domain with 3 predescribed displacements:
 
-     Stiffness ratio Er/En = 100
+     Figure 13, 14 & 15: Stiffness ratio Er/En = 100
           python3 hexagonal.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e-2 -es 1.0e-4 -lr 0.10 -ls 0.10 -k 5.0e-4 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
 
      Convergence summary:
@@ -145,7 +145,7 @@
           Torelance: 1.0e-7
 
 
-     Stiffness ratio Er/En = 0.01
+     Figure 17, 18 & 19: Stiffness ratio Er/En = 0.01
           python3 hexagonal.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e-4 -es 1.0e-2 -lr 0.10 -ls 0.10 -k 5.0e-4 -e 4.0e-3 -vr 0.3 -vs 0.3 -q 1.0
 
      Convergence summary:
