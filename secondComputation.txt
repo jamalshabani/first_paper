@@ -14,3 +14,19 @@
           Gradient evaluations: 613
           Time: 506 seconds
           Torelance: 1.0e-7
+
+
+     Stiffness ratio Er/En = 10.0
+          python3 secondComputation.py -tao_monitor -tao_max_it 2000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-1 -lr 4.5 -ls 0.85 -k 6.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3
+
+     Convergence summary:
+          The initial value of objective function: 10.980316298168011
+          The final value of objective function: 0.26599884835459525
+          Final volume percentages:
+               Non-responsive material: 34%
+               Responsive material: 31%
+          Number of iterations: 1904
+          Objective function evaluations: 1914
+          Gradient evaluations: 1914
+          Time: 1006 seconds
+          Torelance: 1.0e-7
