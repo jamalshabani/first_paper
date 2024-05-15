@@ -4,14 +4,15 @@ def parse():
 	parser.add_argument('-tao_type', '--tao_type', type = str, default = 'bncg', help = 'TAO algorithm type')
 	parser.add_argument('-tao_max_funcs', '--tao_max_funcs', type = int, default = 10000, help = 'TAO maximum functions evaluations')
 	parser.add_argument('-tao_monitor', '--tao_monitor', action = 'store_true', help = 'TAO monitor')
-	parser.add_argument('-ls', '--lagrange_s', type = float, default = 1.0, help = 'Lagrange multiplier for structural material')
-	parser.add_argument('-lr', '--lagrange_r', type = float, default = 5.0, help = 'Lagrange multiplier for responsive material')
+	parser.add_argument('-tao_ls_monitor', '--tao_ls_monitor', action = 'store_true', help = 'TAO line search monitor')
+	parser.add_argument('-ls', '--lagrange_s', type = float, default = 5.0, help = 'Lagrange multiplier for structural material')
+	parser.add_argument('-lr', '--lagrange_r', type = float, default = 0.5, help = 'Lagrange multiplier for responsive material')
 	parser.add_argument('-tao_ls_type', '--tao_ls_type', type = str, default = 'more-thuente', help = "TAO line search")
-	parser.add_argument('-tao_view', '--tao_view', action = 'store_true', help = "View convergence details")
-	parser.add_argument('-tao_max_it', '--tao_max_it', type = int, default = 100, help = 'Number of TAO iterations')
 	parser.add_argument('-tao_gatol', '--tao_gatol', type = float, default = 1.0e-7, help = 'Stop if norm of gradient is less than this')
 	parser.add_argument('-tao_grtol', '--tao_grtol', type = float, default = 1.0e-7, help = 'Stop if relative norm of gradient is less than this')
 	parser.add_argument('-tao_gttol', '--tao_gttol', type = float, default = 1.0e-7, help = 'Stop if norm of gradient is reduced by this factor')
+	parser.add_argument('-tao_view', '--tao_view', action = 'store_true', help = "View convergence details")
+	parser.add_argument('-tao_max_it', '--tao_max_it', type = int, default = 100, help = 'Number of TAO iterations')
 	parser.add_argument('-vs', '--volume_s', type = float, default = 0.3, help = 'Volume percentage for structural material')
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Volume percentage for responsive material')
 	parser.add_argument('-k', '--kappa', type = float, default = 1.0e-2, help = 'Weight of Modica-Mortola')
@@ -21,7 +22,6 @@ def parse():
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation')
-	parser.add_argument('-q', '--power_q', type = float, default = 2.0, help = 'Power for multiple-well function')
 	parser.add_argument('-s', '--steamy', type = float, default = 1.0, help = 'Initial stimulus')
 	options = parser.parse_args()
 	return options
@@ -61,6 +61,7 @@ M = len(mesh_coordinates)
 
 rhos.interpolate(Constant(options.volume_s))
 rhos.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
+
 rhor.interpolate(Constant(options.volume_r))
 rhor.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
@@ -91,8 +92,8 @@ fxy = Constant((0.5, -sqrt(3)/2))
 fyx = Constant((0.5, sqrt(3)/2))
 
 u_star_xx = Constant((1.0, 0.0)) #Right
-u_star_xy = Constant((-0.5, sqrt(3)/2)) #UpLeft
-u_star_yx = Constant((-0.5, -sqrt(3)/2)) #DownRight
+u_star_xy = Constant((-0.5, sqrt(3)/2)) #Up
+u_star_yx = Constant((-0.5, -sqrt(3)/2)) #Down
 
 # Young's modulus of the beam and poisson ratio
 E_v = Constant(delta)
@@ -140,9 +141,12 @@ def s_yx(rho):
 	return rho.sub(4)
 
 # Define the double-well potential function
-# W(x, y) = (x + y)^q * (1 - x)^q * (1 - y)^q
+# W(x, y) = (1 - x - y)^p * (x + y)^p + (1 - x)^p * x^p + (1 - y)^p * y^p
 def W(rho):
-	return pow((rho.sub(0) + rho.sub(1)), options.power_q) * pow((1 - rho.sub(0)), options.power_q) * pow((1 - rho.sub(1)), options.power_q)
+	void_func = pow((1 - rho.sub(0) - rho.sub(1)), options.power_p) * pow((rho.sub(0) + rho.sub(1)), options.power_p)
+	stru_func = pow((1 - rho.sub(0)), options.power_p) * pow(rho.sub(0), options.power_p)
+	resp_func = pow((1 - rho.sub(1)), options.power_p) * pow(rho.sub(1), options.power_p)
+	return void_func + stru_func + resp_func
 
 # Define strain tensor epsilon(u)
 def epsilon(u):
@@ -163,9 +167,6 @@ def sigma_s(u, Id):
 # Define the stress tensor sigma_r(u) for responsive material
 def sigma_r(u, Id):
 	return lambda_r * div(u) * Id + 2 * mu_r * epsilon(u)
-
-
-# Update Lagrange multipliers
 
 # Define test function and beam displacement
 vxx = TestFunction(VV)
@@ -216,7 +217,6 @@ J = Obj_xx + Obj_xy + Obj_yx + P + S
 # Volume fraction penalties
 func5 = lagrange_s * v_s(rho) * dx
 func6 = lagrange_r * v_r(rho) * dx
-
 
 # Objective function + volume penalties
 JJ = J + func5 + func6
@@ -312,8 +312,8 @@ beam = File(options.output + '/beam.pvd')
 dJdrhos = Function(V)
 dJdrhor = Function(V)
 rho_res = Function(V, name = "Responsive")
-rho_str = Function(V, name = "Structural")
 rho_void = Function(V, name = "Void")
+rho_str = Function(V, name = "Structural")
 
 dJdsxx = Function(V)
 dJdsxy = Function(V)
@@ -353,23 +353,25 @@ def FormObjectiveGradient(tao, x, G):
 	print("The volume fraction(Vr) is {}".format(volume_r))
 	print(" ")
 
+	# Apply bounds [0, 1] on 1 - rho2 - rho3 
+	rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
+	rho_voidv = rho_void.vector().get_local()
+	rho_void.vector().set_local(np.maximum(np.minimum(1.0, rho_voidv), 0.0))
+	rho_void.vector().apply("insert")
+
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
-
 		stimulusxx.interpolate(rho.sub(2))
-
 		stimulusxy.interpolate(rho.sub(3))
-
 		stimulusyx.interpolate(rho.sub(4))
 
 		rho_str.interpolate(rho.sub(0))
 		rho_res.interpolate(rho.sub(1))
-		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
 		solve(R_fwd_xx_s == 0, uxx, bcs = bcs)
 		solve(R_fwd_xy_s == 0, uxy, bcs = bcs)
 		solve(R_fwd_yx_s == 0, uyx, bcs = bcs)
-		beam.write(rho_i, stimulusxx, stimulusxy, stimulusyx, rho_str, rho_res, rho_void, uxx, uxy, uyx, time = i)
+		beam.write(rho_i, stimulusxx, stimulusxy, stimulusyx, rho_str, rho_res, uxx, uxy, uyx, time = i)
 
 	with rho.dat.vec as rho_vec:
 		rho_vec.set(0.0)
