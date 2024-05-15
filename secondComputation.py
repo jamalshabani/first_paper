@@ -21,7 +21,6 @@ def parse():
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation')
-	parser.add_argument('-q', '--power_q', type = float, default = 2.0, help = 'Power for multiple-well function')
 	parser.add_argument('-s', '--steamy', type = float, default = 1.0, help = 'Initial stimulus')
 	options = parser.parse_args()
 	return options
@@ -134,9 +133,12 @@ def s_yy(rho):
 
 
 # Define the double-well potential function
-# W(x, y) = (x + y)^q * (1 - x)^q * (1 - y)^q
+# W(x, y) = (1 - x - y)^p * (x + y)^p + (1 - x)^p * x^p + (1 - y)^p * y^p
 def W(rho):
-	return pow((rho.sub(0) + rho.sub(1)), options.power_q) * pow((1 - rho.sub(0)), options.power_q) * pow((1 - rho.sub(1)), options.power_q)
+	void_func = pow((1 - rho.sub(0) - rho.sub(1)), options.power_p) * pow((rho.sub(0) + rho.sub(1)), options.power_p)
+	stru_func = pow((1 - rho.sub(0)), options.power_p) * pow(rho.sub(0), options.power_p)
+	resp_func = pow((1 - rho.sub(1)), options.power_p) * pow(rho.sub(1), options.power_p)
+	return void_func + stru_func + resp_func
 
 # Define strain tensor epsilon(u)
 def epsilon(u):
@@ -208,13 +210,13 @@ func6 = lagrange_r * v_r(rho) * dx
 JJ = J + func5 + func6
 
 # Define the weak form for forward PDExx
-a_forward_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(uxx, Id), epsilon(vxx)) * dx
+a_forward_v_xx = h_v(rho) * inner(sigma_v(uxx, Id), epsilon(vxx)) * dx
 a_forward_s_xx = h_s(rho) * inner(sigma_s(uxx, Id), epsilon(vxx)) * dx
 a_forward_r_xx = h_r(rho) * inner(sigma_r(uxx, Id), epsilon(vxx)) * dx
 a_forward_xx = a_forward_v_xx + a_forward_s_xx + a_forward_r_xx
 
 # Define the weak form for forward PDEyy
-a_forward_v_yy = h_v(rho) * inner(1.0e3 * sigma_v(uyy, Id), epsilon(vyy)) * dx
+a_forward_v_yy = h_v(rho) * inner(sigma_v(uyy, Id), epsilon(vyy)) * dx
 a_forward_s_yy = h_s(rho) * inner(sigma_s(uyy, Id), epsilon(vyy)) * dx
 a_forward_r_yy = h_r(rho) * inner(sigma_r(uyy, Id), epsilon(vyy)) * dx
 a_forward_yy = a_forward_v_yy + a_forward_s_yy + a_forward_r_yy
@@ -232,12 +234,12 @@ R_fwd_xx_s = a_forward_xx - L_forward_xx_s
 R_fwd_yy_s = a_forward_yy - L_forward_yy_s
 
 # Define the Lagrangian
-a_lagrange_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(uxx, Id), epsilon(pxx)) * dx
+a_lagrange_v_xx = h_v(rho) * inner(sigma_v(uxx, Id), epsilon(pxx)) * dx
 a_lagrange_s_xx = h_s(rho) * inner(sigma_s(uxx, Id), epsilon(pxx)) * dx
 a_lagrange_r_xx = h_r(rho) * inner(sigma_r(uxx, Id), epsilon(pxx)) * dx
 a_lagrange_xx = a_lagrange_v_xx + a_lagrange_s_xx + a_lagrange_r_xx
 
-a_lagrange_v_yy = h_v(rho) * inner(1.0e3 * sigma_v(uyy, Id), epsilon(pyy)) * dx
+a_lagrange_v_yy = h_v(rho) * inner(sigma_v(uyy, Id), epsilon(pyy)) * dx
 a_lagrange_s_yy = h_s(rho) * inner(sigma_s(uyy, Id), epsilon(pyy)) * dx
 a_lagrange_r_yy = h_r(rho) * inner(sigma_r(uyy, Id), epsilon(pyy)) * dx
 a_lagrange_yy = a_lagrange_v_yy + a_lagrange_s_yy + a_lagrange_r_yy
@@ -252,12 +254,12 @@ R_lagrange = R_lagrange_xx + R_lagrange_yy
 L = JJ - R_lagrange
 
 # Define the weak form for adjoint PDE
-a_adjoint_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(vxx, Id), epsilon(pxx)) * dx
+a_adjoint_v_xx = h_v(rho) * inner(sigma_v(vxx, Id), epsilon(pxx)) * dx
 a_adjoint_s_xx = h_s(rho) * inner(sigma_s(vxx, Id), epsilon(pxx)) * dx
 a_adjoint_r_xx = h_r(rho) * inner(sigma_r(vxx, Id), epsilon(pxx)) * dx
 a_adjoint_xx = a_adjoint_v_xx + a_adjoint_s_xx + a_adjoint_r_xx
 
-a_adjoint_v_yy = h_v(rho) * inner(1.0e3 * sigma_v(vyy, Id), epsilon(pyy)) * dx
+a_adjoint_v_yy = h_v(rho) * inner(sigma_v(vyy, Id), epsilon(pyy)) * dx
 a_adjoint_s_yy = h_s(rho) * inner(sigma_s(vyy, Id), epsilon(pyy)) * dx
 a_adjoint_r_yy = h_r(rho) * inner(sigma_r(vyy, Id), epsilon(pyy)) * dx
 a_adjoint_yy = a_adjoint_v_yy + a_adjoint_s_yy + a_adjoint_r_yy
@@ -308,6 +310,12 @@ def FormObjectiveGradient(tao, x, G):
 	volume_r = assemble(v_r(rho) * dx)/omega
 	print("The volume fraction(Vr) is {}".format(volume_r))
 	print(" ")
+
+	# Apply bounds [0, 1] on 1 - rho2 - rho3 
+	rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
+	rho_voidv = rho_void.vector().get_local()
+	rho_void.vector().set_local(np.maximum(np.minimum(1.0, rho_voidv), 0.0))
+	rho_void.vector().apply("insert")
 
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
