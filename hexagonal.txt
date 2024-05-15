@@ -1,7 +1,7 @@
 3. Hexagonal domain with 3 predescribed displacements:
 
      Stiffness ratio Er/En = 100.0
-          python3 hexagonal.py -tao_monitor -tao_max_it 10000 -tao_max_funcs 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test5' -er 1.0e-2 -es 1.0e-4 -lr 0.035 -ls 0.05 -k 5.0e-4 -e 2.0e-3 -vr 0.3 -vs 0.3
+          python3 hexagonal.py -tao_monitor -tao_max_it 10000 -tao_max_funcs 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e-2 -es 1.0e-4 -lr 0.035 -ls 0.05 -k 5.0e-4 -e 2.0e-3 -vr 0.3 -vs 0.3
 
      Convergence summary:
           The initial value of objective function: 31.778557796091462
