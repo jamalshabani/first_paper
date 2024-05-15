@@ -1,0 +1,16 @@
+1. Cantilever beam with 1 predescribed displacement:
+
+     Stiffness ratio Er/En = 100.0
+          python3 firstComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 5.0 -ls -0.030 -k 6.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3
+
+     Convergence summary:
+          The initial value of objective function: 12.833512352916118
+          The final value of objective function: 0.24132134219597492
+          Final volume percentages:
+               Non-responsive material: 40%
+               Responsive material: 34%
+          Number of iterations: 610
+          Objective function evaluations: 628
+          Gradient evaluations: 628
+          Time: 263 seconds
+          Torelance: 1.0e-7
