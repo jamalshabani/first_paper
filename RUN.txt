@@ -15,6 +15,7 @@
           Time: 263 seconds
           Torelance: 1.0e-7
 
+
      Stiffness ratio Er/En = 10.0
           python3 firstComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 1.0e0 -es 1.0e-1 -lr 4.0 -ls 0.248 -k 6.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3
 
@@ -29,6 +30,7 @@
           Gradient evaluations: 875
           Time: 369 seconds
           Torelance: 1.0e-7
+
 
      Stiffness ratio Er/En = 1.0 
           python3 firstComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 5.0 -es 5.0 -lr 0.34 -ls 0.13 -vr 0.3 -vs 0.5 -k 9.0e-4 -e 2.0e-3
