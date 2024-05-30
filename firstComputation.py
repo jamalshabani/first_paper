@@ -245,10 +245,11 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Print volume fraction of responsive material
 	volume_r = assemble(v_r(rho) * dx)/omega
-	PETSc.Sys.Print("    The volume fraction(Vr) is {}\n".format(volume_r))
+	PETSc.Sys.Print("    The volume fraction(Vr) is {}".format(volume_r))
 	# print(" ")
 
 	i = tao.getIterationNumber()
+
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
 		stimulus.interpolate(rho.sub(2))
@@ -262,7 +263,6 @@ def FormObjectiveGradient(tao, x, G):
 		rho_vec.set(0.0)
 		rho_vec.axpy(1.0, x)
 
-
 	# Solve forward PDE
 	solve(R_fwd == 0, u, bcs = bcs)
 
@@ -271,7 +271,7 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
-	print("The value of objective function is {}".format(objective_value))
+	PETSc.Sys.Print("    The value of objective function is {}\n".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
