@@ -200,7 +200,7 @@ a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
 
 L_lagrange = -inner(u_star, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
 R_lagrange = a_lagrange - L_lagrange
-L = JJ - R_lagrange
+L = JJ + R_lagrange
 
 # Define the weak form of the adjoint PDE
 a_adjoint_v = h_v(rho) * inner(sigma_v(v, Id), epsilon(p)) * dx
@@ -209,7 +209,7 @@ a_adjoint_r = h_r(rho) * inner(sigma_r(v, Id), epsilon(p)) * dx
 a_adjoint = a_adjoint_v + a_adjoint_s + a_adjoint_r
 
 L_adjoint = inner(u - u_star, v) * dx(4)
-R_adj = a_adjoint - L_adjoint
+R_adj = a_adjoint + L_adjoint
 
 # Beam .pvd file for saving designs
 beam = VTKFile(options.output + '/beam.pvd')
