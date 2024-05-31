@@ -21,7 +21,7 @@ def parse():
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation + triple well potential')
-	parser.add_argument('-s', '--steamy', type = float, default = 1.0, help = 'Initial stimulus')
+	parser.add_argument('-s', '--steamy', type = float, default = 0.0, help = 'Initial stimulus')
 	options = parser.parse_args()
 	return options
 
