@@ -238,6 +238,26 @@ def FormObjectiveGradient(tao, x, G):
 	PETSc.Sys.Print("    The volume fraction(Vr) is {}".format(volume_r))
 	# print(" ")
 
+	# Minimization with respect to stimulus
+	A = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(p))
+	B = 2 * (h_v(rho) + h_s(rho))
+
+	arrayA = func_A.interpolate(A).vector().array()
+	arrayB = func_B.interpolate(B).vector().array()
+	arrayS = [0] * M
+
+	for i in range(M):
+		if arrayA[i] == 0:
+			arrayS[i] = 0
+		elif arrayB[i] <  abs(arrayA[i]) and arrayA[i] > 0:
+			arrayS[i] = 1
+		elif arrayB[i] < abs(arrayA[i]) and arrayA[i] < 0:
+			arrayS[i] = -1
+		else:
+			arrayS[i] = arrayA[i]/arrayB[i]
+
+	stimulus.vector()[:] = arrayS
+
 	i = tao.getIterationNumber()
 
 	if (i%5) == 0:
