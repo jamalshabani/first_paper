@@ -140,15 +140,15 @@ def sigma_A(A, Id):
 
 # Define the stress tensor sigma_v(u) for void
 def sigma_v(u, Id):
-	return lambda_v * div(u) * Id + 2 * mu_v * epsilon(u)
+	return lambda_v * tr(epsilon(u)) * Id + 2 * mu_v * epsilon(u)
 
 # Define the stress tensor sigma_s(u) for structural material
 def sigma_s(u, Id):
-	return lambda_s * div(u) * Id + 2 * mu_s * epsilon(u)
+	return lambda_s * tr(epsilon(u)) * Id + 2 * mu_s * epsilon(u)
 
 # Define the stress tensor sigma_r(u) for responsive material
 def sigma_r(u, Id):
-	return lambda_r * div(u) * Id + 2 * mu_r * epsilon(u)
+	return lambda_r * tr(epsilon(u)) * Id + 2 * mu_r * epsilon(u)
 
 
 # Define test function and beam displacement
