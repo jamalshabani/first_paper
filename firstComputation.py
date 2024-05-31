@@ -28,6 +28,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -61,8 +62,10 @@ rho3.interpolate(Constant(options.volume_r))
 rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 s.interpolate(Constant(options.steamy))
 
-rho = as_vector([rho2, rho3, s])
-rho = interpolate(rho, VVV)
+# rho = as_vector([rho2, rho3, s])
+# rho = interpolate(rho, VVV)
+rho = Function(VVV).interpolate(as_vector([rho2, rho3, s]))
+
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -71,7 +74,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = assemble(Function(V).interpolate(1.) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -211,7 +215,7 @@ L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint - L_adjoint
 
 # Beam .pvd file for saving designs
-beam = File(options.output + '/beam.pvd')
+beam = VTKFile(options.output + '/beam.pvd')
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 rho_res = Function(V, name = "Responsive")
 rho_str = Function(V, name = "Structural")
@@ -221,30 +225,31 @@ dJds = Function(V)
 stimulus = Function(V, name = "Stimulus")
 
 N = M * 3
-index_2 = []
-index_3 = []
-index_s = []
+index_2 = [3*i for i in range(M)]
+index_3 = [3*i+1 for i in range(M)]
+index_s = [3*i+2 for i in range(M)]
 
-for i in range(N):
-	if (i%3) == 0:
-		index_2.append(i)
-	if (i%3) == 1:
-		index_3.append(i)
-	if (i%3) == 2:
-		index_s.append(i)
+# for i in range(N):
+# 	if (i%3) == 0:
+# 		index_2.append(i)
+# 	if (i%3) == 1:
+# 		index_3.append(i)
+# 	if (i%3) == 2:
+# 		index_s.append(i)
 
 def FormObjectiveGradient(tao, x, G):
 
 	# Print volume fraction of structural material
 	volume_s = assemble(v_s(rho) * dx)/omega
-	print("The volume fraction(Vs) is {}".format(volume_s))
+	PETSc.Sys.Print("    The volume fraction(Vs) is {}".format(volume_s))
 
 	# Print volume fraction of responsive material
 	volume_r = assemble(v_r(rho) * dx)/omega
-	print("The volume fraction(Vr) is {}".format(volume_r))
-	print(" ")
+	PETSc.Sys.Print("    The volume fraction(Vr) is {}".format(volume_r))
+	# print(" ")
 
 	i = tao.getIterationNumber()
+
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
 		stimulus.interpolate(rho.sub(2))
@@ -258,7 +263,6 @@ def FormObjectiveGradient(tao, x, G):
 		rho_vec.set(0.0)
 		rho_vec.axpy(1.0, x)
 
-
 	# Solve forward PDE
 	solve(R_fwd == 0, u, bcs = bcs)
 
@@ -267,7 +271,7 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
-	print("The value of objective function is {}".format(objective_value))
+	PETSc.Sys.Print("    The value of objective function is {}\n".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
@@ -285,10 +289,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0, -1))
-ub = as_vector((1, 1, 1))
-lb = interpolate(lb, VVV)
-ub = interpolate(ub, VVV)
+# lb = as_vector((0, 0, -1))
+# ub = as_vector((1, 1, 1))
+# lb = interpolate(lb, VVV)
+# ub = interpolate(ub, VVV)
+lb = Function(VVV).interpolate(as_vector((0, 0, -1)))
+ub = Function(VVV).interpolate(as_vector((1, 1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
@@ -297,7 +303,7 @@ with ub.dat.vec as ub_vec:
 	rho_ub = ub_vec
 
 # Setting TAO solver
-tao = PETSc.TAO().create(PETSc.COMM_SELF)
+tao = PETSc.TAO().create(PETSc.COMM_WORLD)
 tao.setType('bncg')
 tao.setObjectiveGradient(FormObjectiveGradient, None)
 tao.setVariableBounds(rho_lb, rho_ub)
