@@ -214,25 +214,18 @@ R_adj = a_adjoint + L_adjoint
 # Beam .pvd file for saving designs
 beam = VTKFile(options.output + '/beam.pvd')
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
-rho_res = Function(V, name = "Responsive")
-rho_str = Function(V, name = "Structural")
-rho_void = Function(V, name = "Void")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
-dJds = Function(V)
-stimulus = Function(V, name = "Stimulus")
 
-N = M * 3
-index_2 = [3*i for i in range(M)]
-index_3 = [3*i+1 for i in range(M)]
-index_s = [3*i+2 for i in range(M)]
+rho_void = Function(V, name = "Void")
+rho_stru = Function(V, name = "Structural")
+rho_resp = Function(V, name = "Responsive")
 
-# for i in range(N):
-# 	if (i%3) == 0:
-# 		index_2.append(i)
-# 	if (i%3) == 1:
-# 		index_3.append(i)
-# 	if (i%3) == 2:
-# 		index_s.append(i)
+func_A = Function(V, name = "A")
+func_B = Function(V, name = "B")
+
+N = M * 2
+index_2 = [2 * i for i in range(M)]
+index_3 = [2 * i + 1 for i in range(M)]
 
 def FormObjectiveGradient(tao, x, G):
 
@@ -276,11 +269,9 @@ def FormObjectiveGradient(tao, x, G):
 	
 	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
 	dJdrho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-	dJds.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
 
 	G.setValues(index_2, dJdrho2.vector().array())
 	G.setValues(index_3, dJdrho3.vector().array())
-	G.setValues(index_s, dJds.vector().array())
 
 	f_val = assemble(L)
 	return f_val
@@ -290,8 +281,8 @@ def FormObjectiveGradient(tao, x, G):
 # ub = as_vector((1, 1, 1))
 # lb = interpolate(lb, VV)
 # ub = interpolate(ub, VV)
-lb = Function(VV).interpolate(as_vector((0, 0, -1)))
-ub = Function(VV).interpolate(as_vector((1, 1, 1)))
+lb = Function(VV).interpolate(as_vector((0, 0)))
+ub = Function(VV).interpolate(as_vector((1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
