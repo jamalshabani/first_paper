@@ -47,20 +47,20 @@
           Torelance: 1.0e-7
 
 
-     Stiffness ratio Er/En = 0.1 
-          python3 firstComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 1.0e0 -es 1.0e1 -lr 0.1275 -ls 0.12 -vr 0.3 -vs 0.3 -k 4.0e-4 -e 2.0e-3
-
+     Stiffness ratio Er/En = 0.1
+          python3 firstComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 5000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -o 'test1' -er 1.0e0 -es 1.0e1 -lr 0.0025 -ls 0.20 -vr 0.3 -vs 0.3 -k 6.0e-4 -e 2.0e-3
+    
      Convergence summary:
-          The initial value of objective function: 0.1354879430269703
-          The final value of objective function: 0.009553868646003945
+          The initial value of objective function: 0.135471161741117
+          The final value of objective function: 0.011423968973575905
           Final volume percentages:
-               Non-responsive material: 28%
-               Responsive material: 20%
-          Number of iterations: 829
-          Objective function evaluations: 841
-          Gradient evaluations: 870
-          Time: 339 seconds
-          Tolerance: 1.0e-7
+               Non-responsive material: 12%
+               Responsive material: 24%
+          Number of iterations: 5000
+          Objective function evaluations: 5000
+          Gradient evaluations: 5000
+          Time: 1951 seconds
+          Torelance: 1.0e-7
 
      
      Stiffness ratio Er/En = 0.01 
