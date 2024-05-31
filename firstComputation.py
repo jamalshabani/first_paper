@@ -42,14 +42,13 @@ Id = Identity(mesh.geometric_dimension()) #Identity tensor
 # Define the function spaces
 V = FunctionSpace(mesh, 'CG', 1)
 VV = VectorFunctionSpace(mesh, 'CG', 1, dim = 2)
-VVV = VectorFunctionSpace(mesh, 'CG', 1, dim = 3)
 
 # Create initial design
 ###### Begin Initial Design #####
 mesh_coordinates = mesh.coordinates.dat.data[:]
 M = len(mesh_coordinates)
 
-rho =  Function(VVV, name = "Design variable")
+rho =  Function(VV, name = "Design variable")
 rho_i = Function(V, name = "Material density")
 rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
@@ -63,8 +62,8 @@ rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 s.interpolate(Constant(options.steamy))
 
 # rho = as_vector([rho2, rho3, s])
-# rho = interpolate(rho, VVV)
-rho = Function(VVV).interpolate(as_vector([rho2, rho3, s]))
+# rho = interpolate(rho, VV)
+rho = Function(VV).interpolate(as_vector([rho2, rho3, s]))
 
 ###### End Initial Design + stimulus #####
 
@@ -291,10 +290,10 @@ def FormObjectiveGradient(tao, x, G):
 # Setting lower and upper bounds
 # lb = as_vector((0, 0, -1))
 # ub = as_vector((1, 1, 1))
-# lb = interpolate(lb, VVV)
-# ub = interpolate(ub, VVV)
-lb = Function(VVV).interpolate(as_vector((0, 0, -1)))
-ub = Function(VVV).interpolate(as_vector((1, 1, 1)))
+# lb = interpolate(lb, VV)
+# ub = interpolate(ub, VV)
+lb = Function(VV).interpolate(as_vector((0, 0, -1)))
+ub = Function(VV).interpolate(as_vector((1, 1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
