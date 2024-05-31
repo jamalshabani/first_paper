@@ -16,7 +16,7 @@ def parse():
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Target volume for responsive material')
 	parser.add_argument('-k', '--kappa', type = float, default = 6.0e-3, help = 'Weight of perimeter penalization')
 	parser.add_argument('-e', '--epsilon', type = float, default = 2.0e-3, help = 'Phase-field regularization parameter')
-	parser.add_argument('-o', '--output', type = str, default = 'output1', help = 'Output folder')
+	parser.add_argument('-o', '--output', type = str, default = 'test1', help = 'Output folder')
 	parser.add_argument('-m', '--mesh', type = str, default = 'motion.msh', help = 'Design domain mesh')
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
@@ -52,18 +52,18 @@ rho =  Function(VV, name = "Design variable")
 rho_i = Function(V, name = "Material density")
 rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
-s = Function(V, name = "Stimulus")
+stimulus = Function(V, name = "Stimulus")
 
 x, y = SpatialCoordinate(mesh)
 rho2.interpolate(Constant(options.volume_s))
 rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 rho3.interpolate(Constant(options.volume_r))
 rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-s.interpolate(Constant(options.steamy))
+sstimulus.interpolate(Constant(options.steamy))
 
 # rho = as_vector([rho2, rho3, s])
 # rho = interpolate(rho, VV)
-rho = Function(VV).interpolate(as_vector([rho2, rho3, s]))
+rho = Function(VV).interpolate(as_vector([rho2, rho3]))
 
 ###### End Initial Design + stimulus #####
 
@@ -109,7 +109,7 @@ def v_s(rho):
 def v_r(rho):
 	return rho.sub(1)
 
-# Define h_v(rho)=rho_v^p, p = 2
+# Define h_v(rho)=rho_v^(p)
 def h_v(rho):
 	return pow((1 - rho.sub(0) - rho.sub(1)), options.power_p)
 
