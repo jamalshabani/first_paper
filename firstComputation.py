@@ -43,8 +43,8 @@ Id = Identity(mesh.geometric_dimension()) #Identity tensor
 V = FunctionSpace(mesh, 'CG', 1)
 VV = VectorFunctionSpace(mesh, 'CG', 1, dim = 2)
 
-# Create initial design
-###### Begin Initial Design #####
+# Create initial design + initial stimulus
+###### Begin Initial Design + stimulus #####
 mesh_coordinates = mesh.coordinates.dat.data[:]
 M = len(mesh_coordinates)
 
@@ -60,10 +60,9 @@ rho3.interpolate(Constant(options.volume_r))
 rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 stimulus.interpolate(Constant(options.steamy))
 
-# rho = as_vector([rho2, rho3, s])
+# rho = as_vector([rho2, rho3])
 # rho = interpolate(rho, VV)
 rho = Function(VV).interpolate(as_vector([rho2, rho3]))
-
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -84,7 +83,7 @@ kappa_m_e = Constant(kappa * epsilon)
 u_star = Constant((0, 1.0))
 f = Constant((0, 0.0))
 
-# Young's modulus of the beam and poisson ratio
+# Young's modulus of the materials and poisson ratio
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
@@ -133,7 +132,7 @@ def W(rho):
 def epsilon(u):
 	return 0.5 * (grad(u) + grad(u).T)
 
-# Define the residual stresses
+# Define the residual stress
 def sigma_A(A, Id):
 	return lambda_r * tr(A) * Id + 2 * mu_r * A
 
@@ -153,7 +152,6 @@ def sigma_r(u, Id):
 # Define test function and beam displacement
 v = TestFunction(VV)
 u = Function(VV, name = "Displacement")
-us = Function(VV, name = "Displacement")
 p = Function(VV, name = "Adjoint variable")
 
 # The left side of the beam is clamped
