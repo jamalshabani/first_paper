@@ -173,8 +173,8 @@ func3 = lagrange_s * v_s(rho) * dx
 func4 = lagrange_r * v_r(rho) * dx
 
 # stimulus penalty
-func5 = pow(v_v(rho), 2) * pow(s_s(rho), 2) * dx
-func6 = pow(v_s(rho), 2) * pow(s_s(rho), 2) * dx
+func5 = pow(v_v(rho), 2) * pow(stimulus, 2) * dx
+func6 = pow(v_s(rho), 2) * pow(stimulus, 2) * dx
 
 # Objective function + Modica-Mortola functional
 P = func1 + func2 + func3 + func4 + func5 + func6
@@ -186,8 +186,8 @@ a_forward_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(v)) * dx
 a_forward_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(v)) * dx
 a_forward = a_forward_v + a_forward_s + a_forward_r
 
-L_forward = -inner(u_star, v) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
-L_forward_s = s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
+L_forward = -inner(u_star, v) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
+L_forward_s = stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 R_fwd = a_forward - L_forward
 R_fwd_s = a_forward - L_forward_s
 
@@ -197,7 +197,7 @@ a_lagrange_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(p)) * dx
 a_lagrange_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(p)) * dx
 a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
 
-L_lagrange = -inner(u_star, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
+L_lagrange = -inner(u_star, p) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
 R_lagrange = a_lagrange - L_lagrange
 L = JJ + R_lagrange
 
