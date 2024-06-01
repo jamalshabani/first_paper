@@ -73,7 +73,7 @@ lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
 # omega = assemble(interpolate(Constant(1.0), V) * dx)
-omega = assemble(Function(V).interpolate(1.) * dx)
+omega = assemble(Function(V).interpolate(1.0) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -188,8 +188,8 @@ a_forward = a_forward_v + a_forward_s + a_forward_r
 
 L_forward = -inner(u_star, v) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 L_forward_s = stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
-R_fwd = a_forward - L_forward
 R_fwd_s = a_forward - L_forward_s
+R_fwd = a_forward - L_forward
 
 # Define the Lagrangian
 a_lagrange_v = h_v(rho) * inner(sigma_v(u, Id), epsilon(p)) * dx
@@ -296,8 +296,8 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-# lb = as_vector((0, 0, -1))
-# ub = as_vector((1, 1, 1))
+# lb = as_vector((0, 0))
+# ub = as_vector((1, 1))
 # lb = interpolate(lb, VV)
 # ub = interpolate(ub, VV)
 lb = Function(VV).interpolate(as_vector((0, 0)))
