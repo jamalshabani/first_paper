@@ -58,7 +58,7 @@ rho2.interpolate(Constant(options.volume_s))
 rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 rho3.interpolate(Constant(options.volume_r))
 rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
-sstimulus.interpolate(Constant(options.steamy))
+stimulus.interpolate(Constant(options.steamy))
 
 # rho = as_vector([rho2, rho3, s])
 # rho = interpolate(rho, VV)
