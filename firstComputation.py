@@ -54,7 +54,6 @@ rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 stimulus = Function(V, name = "Stimulus")
 
-x, y = SpatialCoordinate(mesh)
 rho2.interpolate(Constant(options.volume_s))
 rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 rho3.interpolate(Constant(options.volume_r))
