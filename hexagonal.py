@@ -4,7 +4,6 @@ def parse():
 	parser.add_argument('-tao_type', '--tao_type', type = str, default = 'bncg', help = 'TAO algorithm type')
 	parser.add_argument('-tao_max_funcs', '--tao_max_funcs', type = int, default = 10000, help = 'TAO maximum functions evaluations')
 	parser.add_argument('-tao_monitor', '--tao_monitor', action = 'store_true', help = 'TAO monitor')
-	parser.add_argument('-tao_ls_monitor', '--tao_ls_monitor', action = 'store_true', help = 'TAO line search monitor')
 	parser.add_argument('-ls', '--lagrange_s', type = float, default = 5.0, help = 'Lagrange multiplier for structural material')
 	parser.add_argument('-lr', '--lagrange_r', type = float, default = 0.5, help = 'Lagrange multiplier for responsive material')
 	parser.add_argument('-tao_ls_type', '--tao_ls_type', type = str, default = 'more-thuente', help = "TAO line search")
@@ -15,14 +14,14 @@ def parse():
 	parser.add_argument('-tao_max_it', '--tao_max_it', type = int, default = 100, help = 'Number of TAO iterations')
 	parser.add_argument('-vs', '--volume_s', type = float, default = 0.3, help = 'Volume percentage for structural material')
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Volume percentage for responsive material')
-	parser.add_argument('-k', '--kappa', type = float, default = 1.0e-2, help = 'Weight of Modica-Mortola')
-	parser.add_argument('-e', '--epsilon', type = float, default = 5.0e-3, help = 'Phase-field regularization parameter')
-	parser.add_argument('-o', '--output', type = str, default = 'output1', help = 'Output folder')
+	parser.add_argument('-k', '--kappa', type = float, default = 6.0e-3, help = 'Weight of Modica-Mortola')
+	parser.add_argument('-e', '--epsilon', type = float, default = 3.0e-3, help = 'Phase-field regularization parameter')
+	parser.add_argument('-o', '--output', type = str, default = 'test1', help = 'Output folder')
 	parser.add_argument('-m', '--mesh', type = str, default = 'hexagonal.msh', help = 'Dimensions of meshed beam')
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation')
-	parser.add_argument('-s', '--steamy', type = float, default = 1.0, help = 'Initial stimulus')
+	parser.add_argument('-s', '--steamy', type = float, default = 0.0, help = 'Initial stimulus')
 	options = parser.parse_args()
 	return options
 
@@ -42,36 +41,34 @@ Id = Identity(mesh.geometric_dimension()) #Identity tensor
 # Define the function spaces
 V = FunctionSpace(mesh, 'CG', 1)
 VV = VectorFunctionSpace(mesh, 'CG', 1, dim = 2)
-VVVVV = VectorFunctionSpace(mesh, 'CG', 1, dim = 5)
 
 # Create initial design
-rho =  Function(VVVVV, name = "Design variable")
+rho =  Function(VV, name = "Design variable")
 rho_i = Function(V, name = "Material density")
-rhos = Function(V, name = "Structural material")  # Structural material 1(Blue)
-rhor = Function(V, name = "Responsive material")  # Responsive material 2(Red)
+rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
+rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 
-sxx = Function(V, name = "Stimulus xx") #Right 
-sxy = Function(V, name = "Stimulus xy")	#Up
-syx = Function(V, name = "Stimulus yx") #Down
+sx = Function(V, name = "Stimulus x") #Right 
+sy = Function(V, name = "Stimulus y") #UpLeft
+sz = Function(V, name = "Stimulus z") #DownLeft
 
 # Create initial design and stimulus
-x, y = SpatialCoordinate(mesh)
+###### Begin Initial Design + stimulus #####
 mesh_coordinates = mesh.coordinates.dat.data[:]
 M = len(mesh_coordinates)
 
-rhos.interpolate(Constant(options.volume_s))
-rhos.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
+rho2.interpolate(Constant(options.volume_s))
+rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
+rho3.interpolate(Constant(options.volume_r))
+rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
-rhor.interpolate(Constant(options.volume_r))
-rhor.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+sx.interpolate(Constant(options.steamy))
+sy.interpolate(Constant(options.steamy))
+sz.interpolate(Constant(options.steamy))
 
-sxx.interpolate(Constant(options.steamy))
-sxy.interpolate(Constant(options.steamy))
-syx.interpolate(Constant(options.steamy))
-
-rho = as_vector([rhos, rhor, sxx, sxy, syx])
-rho = interpolate(rho, VVVVV)
-###### End Initial Design #####
+rho = as_vector([rho2, rho3])
+rho = interpolate(rho, VV)
+###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
 kappa = Constant(options.kappa)
@@ -87,13 +84,9 @@ kappa_d_e = Constant(kappa / epsilon)
 kappa_m_e = Constant(kappa * epsilon)
 
 # Define the predescribed displacements
-fxx = Constant((-1.0, 0.0))
-fxy = Constant((0.5, -sqrt(3)/2))
-fyx = Constant((0.5, sqrt(3)/2))
-
-u_star_xx = Constant((1.0, 0.0)) #Right
-u_star_xy = Constant((-0.5, sqrt(3)/2)) #Up
-u_star_yx = Constant((-0.5, -sqrt(3)/2)) #Down
+u_star_x = Constant((1.0, 0.0)) #Right
+u_star_y = Constant((-0.5, sqrt(3)/2)) #UpLeft
+u_star_z = Constant((-0.5, -sqrt(3)/2)) #DownLeft
 
 # Young's modulus of the beam and poisson ratio
 E_v = Constant(delta)
@@ -131,15 +124,6 @@ def h_s(rho):
 def h_r(rho):
 	return pow(rho.sub(1), options.power_p)
 
-def s_xx(rho):
-	return rho.sub(2)
-
-def s_xy(rho):
-	return rho.sub(3)
-
-def s_yx(rho):
-	return rho.sub(4)
-
 # Define the double-well potential function
 # W(x, y) = (1 - x - y)^p * (x + y)^p + (1 - x)^p * x^p + (1 - y)^p * y^p
 def W(rho):
@@ -158,28 +142,28 @@ def sigma_A(A, Id):
 
 # Define the stress tensor sigma_v(u) for void
 def sigma_v(u, Id):
-	return lambda_v * div(u) * Id + 2 * mu_v * epsilon(u)
+	return lambda_v * tr(epsilon(u)) * Id + 2 * mu_v * epsilon(u)
 
 # Define the stress tensor sigma_s(u) for structural material
 def sigma_s(u, Id):
-	return lambda_s * div(u) * Id + 2 * mu_s * epsilon(u)
+	return lambda_s * tr(epsilon(u)) * Id + 2 * mu_s * epsilon(u)
 
 # Define the stress tensor sigma_r(u) for responsive material
 def sigma_r(u, Id):
-	return lambda_r * div(u) * Id + 2 * mu_r * epsilon(u)
+	return lambda_r * tr(epsilon(u)) * Id + 2 * mu_r * epsilon(u)
 
 # Define test function and beam displacement
-vxx = TestFunction(VV)
-vxy = TestFunction(VV)
-vyx = TestFunction(VV)
+vx = TestFunction(VV)
+vy = TestFunction(VV)
+vz = TestFunction(VV)
 
-uxx = Function(VV, name = "xx-displacement")
-uxy = Function(VV, name = "xy-displacement")
-uyx = Function(VV, name = "yx-displacement")
+ux = Function(VV, name = "x-displacement")
+uy = Function(VV, name = "y-displacement")
+uz = Function(VV, name = "z-displacement")
 
-pxx = Function(VV, name = "Adjoint variable xx")
-pxy = Function(VV, name = "Adjoint variable xy")
-pyx = Function(VV, name = "Adjoint variable yx")
+px = Function(VV, name = "Adjoint variable x")
+py = Function(VV, name = "Adjoint variable y")
+pz = Function(VV, name = "Adjoint variable z")
 
 # Three faces of the beam are clamped
 # All three faces have same ID of 7
@@ -197,22 +181,22 @@ func2 = kappa_m_e * (func2_sub1 + func2_sub2 + func2_sub3)
 P = func1 + func2
 
 # Penalty for stimulus on void + structural material
-func3_xx = pow(v_v(rho), 2) * pow(s_xx(rho), 2) * dx
-func4_xx = pow(v_s(rhos), 2) * pow(s_xx(rho), 2) * dx
+func3_x = pow(v_v(rho), 2) * pow(sx, 2) * dx
+func4_x = pow(v_s(rho2), 2) * pow(sx, 2) * dx
 
-func3_xy = pow(v_v(rho), 2) * pow(s_xy(rho), 2) * dx
-func4_xy = pow(v_s(rhos), 2) * pow(s_xy(rho), 2) * dx
+func3_y = pow(v_v(rho), 2) * pow(sy, 2) * dx
+func4_y = pow(v_s(rho2), 2) * pow(sy, 2) * dx
 
-func3_yx = pow(v_v(rho), 2) * pow(s_yx(rho), 2) * dx
-func4_yx = pow(v_s(rhos), 2) * pow(s_yx(rho), 2) * dx
+func3_z = pow(v_v(rho), 2) * pow(sz, 2) * dx
+func4_z = pow(v_s(rho2), 2) * pow(sz, 2) * dx
 
-S = func3_xx + func4_xx + func3_xy + func4_xy + func3_yx + func4_yx
+S = func3_x + func4_x + func3_y + func4_y + func3_z + func4_z
 
 # Objective function + Modica-Mortola functional + Penalty
-Obj_xx = 0.5 * inner(uxx - u_star_xx, uxx - u_star_xx) * dx(4)
-Obj_xy = 0.5 * inner(uxy - u_star_xy, uxy - u_star_xy) * dx(4)
-Obj_yx = 0.5 * inner(uyx - u_star_yx, uyx - u_star_yx) * dx(4)
-J = Obj_xx + Obj_xy + Obj_yx + P + S
+Obj_x = 0.5 * inner(ux - u_star_x, ux - u_star_x) * dx(4)
+Obj_y = 0.5 * inner(uy - u_star_y, uy - u_star_y) * dx(4)
+Obj_z = 0.5 * inner(uz - u_star_z, uz - u_star_z) * dx(4)
+J = Obj_x + Obj_y + Obj_z + P + S
 
 # Volume fraction penalties
 func5 = lagrange_s * v_s(rho) * dx
@@ -221,126 +205,115 @@ func6 = lagrange_r * v_r(rho) * dx
 # Objective function + volume penalties
 JJ = J + func5 + func6
 
-# Define the weak form for forward PDExx
-a_forward_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(uxx, Id), epsilon(vxx)) * dx
-a_forward_s_xx = h_s(rho) * inner(sigma_s(uxx, Id), epsilon(vxx)) * dx
-a_forward_r_xx = h_r(rho) * inner(sigma_r(uxx, Id), epsilon(vxx)) * dx
-a_forward_xx = a_forward_v_xx + a_forward_s_xx + a_forward_r_xx
+# Define the weak form for forward PDEx
+a_forward_v_x = h_v(rho) * inner(1.0e3 * sigma_v(ux, Id), epsilon(vx)) * dx
+a_forward_s_x = h_s(rho) * inner(sigma_s(ux, Id), epsilon(vx)) * dx
+a_forward_r_x = h_r(rho) * inner(sigma_r(ux, Id), epsilon(vx)) * dx
+a_forward_x = a_forward_v_x + a_forward_s_x + a_forward_r_x
 
-# Define the weak form for forward PDExy
-a_forward_v_xy = h_v(rho) * inner(1.0e3 * sigma_v(uxy, Id), epsilon(vxy)) * dx
-a_forward_s_xy = h_s(rho) * inner(sigma_s(uxy, Id), epsilon(vxy)) * dx
-a_forward_r_xy = h_r(rho) * inner(sigma_r(uxy, Id), epsilon(vxy)) * dx
-a_forward_xy = a_forward_v_xy + a_forward_s_xy + a_forward_r_xy
+# Define the weak form for forward PDEy
+a_forward_v_y = h_v(rho) * inner(1.0e3 * sigma_v(uy, Id), epsilon(vy)) * dx
+a_forward_s_y = h_s(rho) * inner(sigma_s(uy, Id), epsilon(vy)) * dx
+a_forward_r_y = h_r(rho) * inner(sigma_r(uy, Id), epsilon(vy)) * dx
+a_forward_y = a_forward_v_y + a_forward_s_y + a_forward_r_y
 
-# Define the weak form for forward PDEyx
-a_forward_v_yx = h_v(rho) * inner(1.0e3 * sigma_v(uyx, Id), epsilon(vyx)) * dx
-a_forward_s_yx = h_s(rho) * inner(sigma_s(uyx, Id), epsilon(vyx)) * dx
-a_forward_r_yx = h_r(rho) * inner(sigma_r(uyx, Id), epsilon(vyx)) * dx
-a_forward_yx = a_forward_v_yx + a_forward_s_yx + a_forward_r_yx
+# Define the weak form for forward PDEz
+a_forward_v_z = h_v(rho) * inner(1.0e3 * sigma_v(uz, Id), epsilon(vz)) * dx
+a_forward_s_z = h_s(rho) * inner(sigma_s(uz, Id), epsilon(vz)) * dx
+a_forward_r_z = h_r(rho) * inner(sigma_r(uz, Id), epsilon(vz)) * dx
+a_forward_z = a_forward_v_z + a_forward_s_z + a_forward_r_z
 
-L_forward_xx = inner(fxx, vxx) * ds(8) + s_xx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxx)) * dx
-L_forward_xy = inner(fxy, vxy) * ds(9) + s_xy(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxy)) * dx
-L_forward_yx = inner(fyx, vyx) * ds(10) + s_yx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vyx)) * dx
+L_forward_x = inner(u_star_x, vx) * ds(8) + sx * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vx)) * dx
+L_forward_y = inner(u_star_y, vy) * ds(9) + sy * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vy)) * dx
+L_forward_z = inner(u_star_z, vz) * ds(10) + sz * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vz)) * dx
 
-L_forward_xx_s = s_xx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxx)) * dx
-L_forward_xy_s = s_xy(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vxy)) * dx
-L_forward_yx_s = s_yx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vyx)) * dx
+L_forward_x_s = sx * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vx)) * dx
+L_forward_y_s = sy * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vy)) * dx
+L_forward_z_s = sz * h_r(rho) * inner(sigma_A(Id, Id), epsilon(vz)) * dx
 
-R_fwd_xx = a_forward_xx - L_forward_xx
-R_fwd_xy = a_forward_xy - L_forward_xy
-R_fwd_yx = a_forward_yx - L_forward_yx
+R_fwd_x = a_forward_x - L_forward_x
+R_fwd_y = a_forward_y - L_forward_y
+R_fwd_z = a_forward_z - L_forward_z
 
-R_fwd_xx_s = a_forward_xx - L_forward_xx_s
-R_fwd_xy_s = a_forward_xy - L_forward_xy_s
-R_fwd_yx_s = a_forward_yx - L_forward_yx_s
+R_fwd_x_s = a_forward_x - L_forward_x_s
+R_fwd_y_s = a_forward_y - L_forward_y_s
+R_fwd_z_s = a_forward_z - L_forward_z_s
 
 
 # Define the Lagrangian
-a_lagrange_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(uxx, Id), epsilon(pxx)) * dx
-a_lagrange_s_xx = h_s(rho) * inner(sigma_s(uxx, Id), epsilon(pxx)) * dx
-a_lagrange_r_xx = h_r(rho) * inner(sigma_r(uxx, Id), epsilon(pxx)) * dx
-a_lagrange_xx = a_lagrange_v_xx + a_lagrange_s_xx + a_lagrange_r_xx
+a_lagrange_v_x = h_v(rho) * inner(1.0e3 * sigma_v(ux, Id), epsilon(px)) * dx
+a_lagrange_s_x = h_s(rho) * inner(sigma_s(ux, Id), epsilon(px)) * dx
+a_lagrange_r_x = h_r(rho) * inner(sigma_r(ux, Id), epsilon(px)) * dx
+a_lagrange_x = a_lagrange_v_x + a_lagrange_s_x + a_lagrange_r_x
 
-a_lagrange_v_xy = h_v(rho) * inner(1.0e3 * sigma_v(uxy, Id), epsilon(pxy)) * dx
-a_lagrange_s_xy = h_s(rho) * inner(sigma_s(uxy, Id), epsilon(pxy)) * dx
-a_lagrange_r_xy = h_r(rho) * inner(sigma_r(uxy, Id), epsilon(pxy)) * dx
-a_lagrange_xy = a_lagrange_v_xy + a_lagrange_s_xy + a_lagrange_r_xy
+a_lagrange_v_y = h_v(rho) * inner(1.0e3 * sigma_v(uy, Id), epsilon(py)) * dx
+a_lagrange_s_y = h_s(rho) * inner(sigma_s(uy, Id), epsilon(py)) * dx
+a_lagrange_r_y = h_r(rho) * inner(sigma_r(uy, Id), epsilon(py)) * dx
+a_lagrange_y = a_lagrange_v_y + a_lagrange_s_y + a_lagrange_r_y
 
-a_lagrange_v_yx = h_v(rho) * inner(1.0e3 * sigma_v(uyx, Id), epsilon(pyx)) * dx
-a_lagrange_s_yx = h_s(rho) * inner(sigma_s(uyx, Id), epsilon(pyx)) * dx
-a_lagrange_r_yx = h_r(rho) * inner(sigma_r(uyx, Id), epsilon(pyx)) * dx
-a_lagrange_yx = a_lagrange_v_yx + a_lagrange_s_yx + a_lagrange_r_yx
+a_lagrange_v_z = h_v(rho) * inner(1.0e3 * sigma_v(uz, Id), epsilon(pz)) * dx
+a_lagrange_s_z = h_s(rho) * inner(sigma_s(uz, Id), epsilon(pz)) * dx
+a_lagrange_r_z = h_r(rho) * inner(sigma_r(uz, Id), epsilon(pz)) * dx
+a_lagrange_z = a_lagrange_v_z + a_lagrange_s_z + a_lagrange_r_z
 
-L_lagrange_xx = inner(fxx, pxx) * ds(8) + s_xx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pxx)) * dx
-L_lagrange_xy = inner(fxy, pxy) * ds(9) + s_xy(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pxy)) * dx
-L_lagrange_yx = inner(fyx, pyx) * ds(10) + s_yx(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pyx)) * dx
+L_lagrange_x = inner(u_star_x, px) * ds(8) + sx * h_r(rho) * inner(sigma_A(Id, Id), epsilon(px)) * dx
+L_lagrange_y = inner(u_star_y, py) * ds(9) + sy * h_r(rho) * inner(sigma_A(Id, Id), epsilon(py)) * dx
+L_lagrange_z = inner(u_star_z, pz) * ds(10) + sz * h_r(rho) * inner(sigma_A(Id, Id), epsilon(pz)) * dx
 
-R_lagrange_xx = a_lagrange_xx - L_lagrange_xx
-R_lagrange_xy = a_lagrange_xy - L_lagrange_xy
-R_lagrange_yx = a_lagrange_yx - L_lagrange_yx
+R_lagrange_x = a_lagrange_x - L_lagrange_x
+R_lagrange_y = a_lagrange_y - L_lagrange_y
+R_lagrange_z = a_lagrange_z - L_lagrange_z
 
-R_lagrange = R_lagrange_xx + R_lagrange_xy + R_lagrange_yx
-L = JJ - R_lagrange
+R_lagrange = R_lagrange_x + R_lagrange_y + R_lagrange_z
+L = JJ + R_lagrange
 
 # Define the weak form for adjoint PDE
-a_adjoint_v_xx = h_v(rho) * inner(1.0e3 * sigma_v(vxx, Id), epsilon(pxx)) * dx
-a_adjoint_s_xx = h_s(rho) * inner(sigma_s(vxx, Id), epsilon(pxx)) * dx
-a_adjoint_r_xx = h_r(rho) * inner(sigma_r(vxx, Id), epsilon(pxx)) * dx
-a_adjoint_xx = a_adjoint_v_xx + a_adjoint_s_xx + a_adjoint_r_xx
+a_adjoint_v_x = h_v(rho) * inner(1.0e3 * sigma_v(vx, Id), epsilon(px)) * dx
+a_adjoint_s_x = h_s(rho) * inner(sigma_s(vx, Id), epsilon(px)) * dx
+a_adjoint_r_x = h_r(rho) * inner(sigma_r(vx, Id), epsilon(px)) * dx
+a_adjoint_x = a_adjoint_v_x + a_adjoint_s_x + a_adjoint_r_x
 
-a_adjoint_v_xy = h_v(rho) * inner(1.0e3 * sigma_v(vxy, Id), epsilon(pxy)) * dx
-a_adjoint_s_xy = h_s(rho) * inner(sigma_s(vxy, Id), epsilon(pxy)) * dx
-a_adjoint_r_xy = h_r(rho) * inner(sigma_r(vxy, Id), epsilon(pxy)) * dx
-a_adjoint_xy = a_adjoint_v_xy + a_adjoint_s_xy + a_adjoint_r_xy
+a_adjoint_v_y = h_v(rho) * inner(1.0e3 * sigma_v(vy, Id), epsilon(py)) * dx
+a_adjoint_s_y = h_s(rho) * inner(sigma_s(vy, Id), epsilon(py)) * dx
+a_adjoint_r_y = h_r(rho) * inner(sigma_r(vy, Id), epsilon(py)) * dx
+a_adjoint_y = a_adjoint_v_y + a_adjoint_s_y + a_adjoint_r_y
 
-a_adjoint_v_yx = h_v(rho) * inner(1.0e3 * sigma_v(vyx, Id), epsilon(pyx)) * dx
-a_adjoint_s_yx = h_s(rho) * inner(sigma_s(vyx, Id), epsilon(pyx)) * dx
-a_adjoint_r_yx = h_r(rho) * inner(sigma_r(vyx, Id), epsilon(pyx)) * dx
-a_adjoint_yx = a_adjoint_v_yx + a_adjoint_s_yx + a_adjoint_r_yx
+a_adjoint_v_z = h_v(rho) * inner(1.0e3 * sigma_v(vz, Id), epsilon(pz)) * dx
+a_adjoint_s_z = h_s(rho) * inner(sigma_s(vz, Id), epsilon(pz)) * dx
+a_adjoint_r_z = h_r(rho) * inner(sigma_r(vz, Id), epsilon(pz)) * dx
+a_adjoint_z = a_adjoint_v_z + a_adjoint_s_z + a_adjoint_r_z
 
-L_adjoint_xx = inner(uxx - u_star_xx, vxx) * dx(4)
-L_adjoint_xy = inner(uxy - u_star_xy, vxy) * dx(4)
-L_adjoint_yx = inner(uyx - u_star_yx, vyx) * dx(4)
+L_adjoint_x = inner(ux - u_star_x, vx) * dx(4)
+L_adjoint_y = inner(uy - u_star_y, vy) * dx(4)
+L_adjoint_z = inner(uz - u_star_z, vz) * dx(4)
 
-R_adj_xx = a_adjoint_xx - L_adjoint_xx
-R_adj_xy = a_adjoint_xy - L_adjoint_xy
-R_adj_yx = a_adjoint_yx - L_adjoint_yx
+R_adj_x = a_adjoint_x + L_adjoint_x
+R_adj_y = a_adjoint_y + L_adjoint_y
+R_adj_z = a_adjoint_z + L_adjoint_z
 
 # Beam .pvd file for saving designs
 beam = File(options.output + '/beam.pvd')
-dJdrhos = Function(V)
-dJdrhor = Function(V)
-rho_res = Function(V, name = "Responsive")
+dJdrho2 = Function(V, name = "Grad w.r.t rho2")
+dJdrho3 = Function(V, name = "Grad w.r.t rho3")
+
 rho_void = Function(V, name = "Void")
-rho_str = Function(V, name = "Structural")
+rho_stru = Function(V, name = "Structural")
+rho_resp = Function(V, name = "Responsive")
 
-dJdsxx = Function(V)
-dJdsxy = Function(V)
-dJdsyx = Function(V)
+func_Ax = Function(V, name = "Ax")
+func_Ay = Function(V, name = "Ay")
+func_Az = Function(V, name = "Ay")
+func_B = Function(V, name = "B")
 
-stimulusxx = Function(V, name = "Stimulus xx")
-stimulusxy = Function(V, name = "Stimulus xy")
-stimulusyx = Function(V, name = "Stimulus yx")
-
-N = M * 5
-index_s = []
-index_r = []
-index_sxx = []
-index_sxy = []
-index_syx = []
+N = M * 2
+index_2 = []
+index_3 = []
 
 for i in range(N):
-	if (i%5) == 0:
-		index_s.append(i)
-	if (i%5) == 1:
-		index_r.append(i)
-	if (i%5) == 2:
-		index_sxx.append(i)
-	if (i%5) == 3:
-		index_sxy.append(i)
-	if (i%5) == 4:
-		index_syx.append(i)
+	if (i%2) == 0:
+		index_2.append(i)
+	if (i%2) == 1:
+		index_3.append(i)
 
 def FormObjectiveGradient(tao, x, G):
 
@@ -353,65 +326,101 @@ def FormObjectiveGradient(tao, x, G):
 	print("The volume fraction(Vr) is {}".format(volume_r))
 	print(" ")
 
+	# Minimization with respect to stimulus
+	Ax = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(px))
+	Ay = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(py))
+	Az = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(pz))
+	B = 2 * (h_v(rho) + h_s(rho))
+
+	arrayB = func_B.interpolate(B).vector().array()
+	arrayAx = func_Ax.interpolate(Ax).vector().array()
+	arrayAy = func_Ay.interpolate(Ay).vector().array()
+	arrayAz = func_Az.interpolate(Az).vector().array()
+
+	arraySx = [0] * M
+	arraySy = [0] * M
+	arraySz = [0] * M
+
+	for i in range(M):
+		if arrayAy[i] == 0:
+			arraySy[i] = 0
+		elif arrayB[i] <  abs(arrayAy[i]) and arrayAy[i] > 0:
+			arraySy[i] = 1
+		elif arrayB[i] < abs(arrayAy[i]) and arrayAy[i] < 0:
+			arraySy[i] = -1
+		else:
+			arraySy[i] = arrayAy[i]/arrayB[i]
+	sy.vector()[:] = arraySy
+
+	for i in range(M):
+		if arrayAx[i] == 0:
+			arraySx[i] = 0
+		elif arrayB[i] <  abs(arrayAx[i]) and arrayAx[i] > 0:
+			arraySx[i] = 1
+		elif arrayB[i] < abs(arrayAx[i]) and arrayAx[i] < 0:
+			arraySx[i] = -1
+		else:
+			arraySx[i] = arrayAx[i]/arrayB[i]
+	sx.vector()[:] = arraySx
+
+	for i in range(M):
+		if arrayAz[i] == 0:
+			arraySz[i] = 0
+		elif arrayB[i] <  abs(arrayAz[i]) and arrayAz[i] > 0:
+			arraySz[i] = 1
+		elif arrayB[i] < abs(arrayAz[i]) and arrayAz[i] < 0:
+			arraySz[i] = -1
+		else:
+			arraySz[i] = arrayAz[i]/arrayB[i]
+	sz.vector()[:] = arraySz
+
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
-		stimulusxx.interpolate(rho.sub(2))
-		stimulusxy.interpolate(rho.sub(3))
-		stimulusyx.interpolate(rho.sub(4))
-
-		rho_str.interpolate(rho.sub(0))
-		rho_res.interpolate(rho.sub(1))
-		solve(R_fwd_xx_s == 0, uxx, bcs = bcs)
-		solve(R_fwd_xy_s == 0, uxy, bcs = bcs)
-		solve(R_fwd_yx_s == 0, uyx, bcs = bcs)
-		beam.write(rho_i, stimulusxx, stimulusxy, stimulusyx, rho_str, rho_res, uxx, uxy, uyx, time = i)
+		rho_stru.interpolate(rho.sub(0))
+		rho_resp.interpolate(rho.sub(1))
+		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
+		solve(R_fwd_x_s == 0, ux, bcs = bcs)
+		solve(R_fwd_y_s == 0, uy, bcs = bcs)
+		solve(R_fwd_z_s == 0, uz, bcs = bcs)
+		beam.write(rho_i, sx, sy, sz, rho_stru, rho_resp, rho_void, ux, uy, uz, time = i)
 
 	with rho.dat.vec as rho_vec:
 		rho_vec.set(0.0)
 		rho_vec.axpy(1.0, x)
 
-
 	# Solve forward PDEs
-	solve(R_fwd_xx == 0, uxx, bcs = bcs)
-	solve(R_fwd_xy == 0, uxy, bcs = bcs)
-	solve(R_fwd_yx == 0, uyx, bcs = bcs)
+	solve(R_fwd_x == 0, ux, bcs = bcs)
+	solve(R_fwd_y == 0, uy, bcs = bcs)
+	solve(R_fwd_z == 0, uz, bcs = bcs)
 
 	# Solve adjoint PDEs
-	solve(R_adj_xx == 0, pxx, bcs = bcs)
-	solve(R_adj_xy == 0, pxy, bcs = bcs)
-	solve(R_adj_yx == 0, pyx, bcs = bcs)
+	solve(R_adj_x == 0, px, bcs = bcs)
+	solve(R_adj_y == 0, py, bcs = bcs)
+	solve(R_adj_z == 0, pz, bcs = bcs)
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
 	print("The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3 and s
-	dJdrhos.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
-	dJdrhos.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
+	dJdrho2.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 
-	dJdrhor.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
-	dJdrhor.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
+	dJdrho3.interpolate(assemble(derivative(L, rho.sub(1))).riesz_representation(riesz_map="l2"))
+	dJdrho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 	
-	dJdsxx.interpolate(assemble(derivative(L, rho.sub(2))).riesz_representation(riesz_map="l2"))
-	dJdsxy.interpolate(assemble(derivative(L, rho.sub(3))).riesz_representation(riesz_map="l2"))
-	dJdsyx.interpolate(assemble(derivative(L, rho.sub(4))).riesz_representation(riesz_map="l2"))
-
-	G.setValues(index_s, dJdrhos.vector().array())
-	G.setValues(index_r, dJdrhor.vector().array())
-	G.setValues(index_sxx, dJdsxx.vector().array())
-	G.setValues(index_sxy, dJdsxy.vector().array())
-	G.setValues(index_syx, dJdsyx.vector().array())
+	G.setValues(index_2, dJdrho2.vector().array())
+	G.setValues(index_3, dJdrho3.vector().array())
 
 	f_val = assemble(L)
 	return f_val
 
 # Setting lower and upper bounds
-# No need to enforce box constraints
-lb = as_vector((0, 0, -1, -1, -1))
-ub = as_vector((1, 1, 1, 1, 1))
-lb = interpolate(lb, VVVVV)
-ub = interpolate(ub, VVVVV)
+lb = as_vector((0, 0))
+ub = as_vector((1, 1))
+lb = interpolate(lb, VV)
+ub = interpolate(ub, VV)
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
