@@ -323,7 +323,7 @@ def FormObjectiveGradient(tao, x, G):
 		elif arrayB[i] <  abs(arrayAx[i]) and arrayAx[i] > 0:
 			arraySx[i] = 1
 		elif arrayB[i] < abs(arrayAx[i]) and arrayAx[i] < 0:
-			arraySx[i] = 1
+			arraySx[i] = -1
 		else:
 			arraySx[i] = arrayAx[i]/arrayB[i]
 	sx.vector()[:] = arraySx
