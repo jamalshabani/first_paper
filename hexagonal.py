@@ -28,6 +28,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -66,8 +67,9 @@ sx.interpolate(Constant(options.steamy))
 sy.interpolate(Constant(options.steamy))
 sz.interpolate(Constant(options.steamy))
 
-rho = as_vector([rho2, rho3])
-rho = interpolate(rho, VV)
+# rho = as_vector([rho2, rho3])
+# rho = interpolate(rho, VV)
+rho = Function(VV).interpolate(as_vector([rho2, rho3]))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -76,7 +78,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = assemble(Function(V).interpolate(1.0) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -292,7 +295,7 @@ R_adj_y = a_adjoint_y + L_adjoint_y
 R_adj_z = a_adjoint_z + L_adjoint_z
 
 # Beam .pvd file for saving designs
-beam = File(options.output + '/beam.pvd')
+beam = VTKFile(options.output + '/beam.pvd')
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 
@@ -323,12 +326,12 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Print volume fraction of structural material
 	volume_s = assemble(v_s(rho) * dx)/omega
-	print("The volume fraction(Vs) is {}".format(volume_s))
+	PETSc.Sys.Print("    The volume fraction(Vs) is {}".format(volume_s))
 
 	# Print volume fraction of responsive material
 	volume_r = assemble(v_r(rho) * dx)/omega
-	print("The volume fraction(Vr) is {}".format(volume_r))
-	print(" ")
+	PETSc.Sys.Print("    The volume fraction(Vr) is {}".format(volume_r))
+	# print(" ")
 
 	# Minimization with respect to stimulus
 	B = 2 * (h_v(rho) + h_s(rho))
@@ -405,7 +408,7 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
-	print("The value of objective function is {}".format(objective_value))
+	PETSc.Sys.Print("    The value of objective function is {}\n".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3 and s
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
@@ -421,10 +424,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0))
-ub = as_vector((1, 1))
-lb = interpolate(lb, VV)
-ub = interpolate(ub, VV)
+# lb = as_vector((0, 0))
+# ub = as_vector((1, 1))
+# lb = interpolate(lb, VV)
+# ub = interpolate(ub, VV)
+lb = Function(VV).interpolate(as_vector((0, 0)))
+ub = Function(VV).interpolate(as_vector((1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
@@ -433,7 +438,7 @@ with ub.dat.vec as ub_vec:
 	rho_ub = ub_vec
 
 # Setting TAO solver
-tao = PETSc.TAO().create(PETSc.COMM_SELF)
+tao = PETSc.TAO().create(PETSc.COMM_WORLD)
 tao.setType('bncg')
 tao.setObjectiveGradient(FormObjectiveGradient, None)
 tao.setVariableBounds(rho_lb, rho_ub)
