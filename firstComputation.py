@@ -259,9 +259,8 @@ def FormObjectiveGradient(tao, x, G):
 
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
-		stimulus.interpolate(rho.sub(2))
-		rho_str.interpolate(rho.sub(0))
-		rho_res.interpolate(rho.sub(1))
+		rho_stru.interpolate(rho.sub(0))
+		rho_resp.interpolate(rho.sub(1))
 
 		solve(R_fwd_s == 0, u, bcs = bcs)
 		beam.write(rho_i, stimulus, rho_stru, rho_resp, rho_void, u, time = i)
