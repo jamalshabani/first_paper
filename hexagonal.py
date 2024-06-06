@@ -303,6 +303,10 @@ rho_resp = Function(V, name = "Responsive")
 func_Ax = Function(V, name = "Ax")
 func_Ay = Function(V, name = "Ay")
 func_Az = Function(V, name = "Ay")
+
+sx = Function(V, name = "Stimulus x") #Right 
+sy = Function(V, name = "Stimulus y") #UpLeft
+sz = Function(V, name = "Stimulus z") #DownLeft
 func_B = Function(V, name = "B")
 
 N = M * 2
@@ -327,10 +331,10 @@ def FormObjectiveGradient(tao, x, G):
 	print(" ")
 
 	# Minimization with respect to stimulus
+	B = 2 * (h_v(rho) + h_s(rho))
 	Ax = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(px))
 	Ay = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(py))
 	Az = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(pz))
-	B = 2 * (h_v(rho) + h_s(rho))
 
 	arrayB = func_B.interpolate(B).vector().array()
 	arrayAx = func_Ax.interpolate(Ax).vector().array()
