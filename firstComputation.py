@@ -81,7 +81,6 @@ kappa_m_e = Constant(kappa * epsilon)
 
 # Define predescribed displacement
 u_star = Constant((0, 1.0))
-f = Constant((0, 0.0))
 
 # Young's modulus of the materials and poisson ratio
 E_v = Constant(delta)
