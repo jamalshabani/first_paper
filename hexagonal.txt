@@ -4,15 +4,15 @@
           python3 hexagonal.py -tao_monitor -tao_max_it 10000 -tao_max_funcs 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -o 'test1' -er 1.0e-2 -es 1.0e-4 -lr 0.07 -ls 0.1 -k 5.0e-4 -e 2.0e-3 -vr 0.3 -vs 0.3
 
      Convergence summary:
-          The initial value of objective function: 31.778557796091462
-          The final value of objective function: 0.0026067306259010504
+          The initial value of objective function: 30.029299583873964
+          The final value of objective function: 0.0030579852102251676
           Final volume percentages:
-               Non-responsive material: 21%
-               Responsive material: 24%
-          Number of iterations: 3305
-          Objective function evaluations: 3501
-          Gradient evaluations: 3501
-          Time: 4189 seconds
+               Non-responsive material: 30%
+               Responsive material: 20%
+          Number of iterations: 3733
+          Objective function evaluations: 3735
+          Gradient evaluations: 1486
+          Time: 4336 seconds
           Torelance: 1.0e-7
 
 
