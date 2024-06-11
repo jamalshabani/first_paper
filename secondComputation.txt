@@ -1,6 +1,6 @@
 2. Cantilever beam with 2 predescribed displacements:
 
-     Stiffness ratio Er/En = 100.0
+     Stiffness ratio E3/E2 = 100.0
           python3 secondComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 5.0 -ls 0.001 -k 8.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3
 
      Convergence summary:
@@ -16,7 +16,7 @@
           Torelance: 1.0e-7
 
 
-     Stiffness ratio Er/En = 10.0
+     Stiffness ratio E3/E2 = 10.0
           python3 secondComputation.py -tao_monitor -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -o 'test1' -er 1.0e0 -es 1.0e-2 -lr 5.0 -ls 0.001 -k 8.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3
 
      Convergence summary:
@@ -32,7 +32,7 @@
           Torelance: 1.0e-7
 
 
-     Stiffness ratio Er/En = 1.0
+     Stiffness ratio E3/E2 = 1.0
           python3 secondComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -o 'test1' -er 5.0 -es 5.0 -lr 0.10 -ls 0.05 -vr 0.3 -vs 0.3 -k 2.0e-4 -e 2.0e-3
 
      Convergence summary:
@@ -48,7 +48,7 @@
           Torelance: 1.0e-7
 
 
-     Stiffness ratio Er/En = 0.1
+     Stiffness ratio E3/E2 = 0.1
           python3 secondComputation.py -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -o 'test1' -er 1.0e0 -es 1.0e1 -lr 0.01 -ls 0.14 -vr 0.3 -vs 0.3 -k 5.0e-4 -e 2.0e-3
 
      Convergence summary:
