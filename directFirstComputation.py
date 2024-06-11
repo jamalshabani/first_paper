@@ -244,17 +244,12 @@ def FormObjectiveGradient(tao, x, G):
 	print("The volume fraction(Vr) is {}".format(volume_r))
 	print(" ")
 
-	# Apply bounds [0, 1] on 1 - rho2 - rho3 
-	rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
-	rho_voidv = rho_void.vector().get_local()
-	rho_void.vector().set_local(np.maximum(np.minimum(1.0, rho_voidv), 0.0))
-	rho_void.vector().apply("insert")
-
 	i = tao.getIterationNumber()
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
 		stimulus.interpolate(rho.sub(2))
 		rho_str.interpolate(rho.sub(0))
+		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
 		rho_res.interpolate(rho.sub(1))
 
 		solve(R_fwd_s == 0, u, bcs = bcs)
