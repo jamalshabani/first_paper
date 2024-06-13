@@ -16,7 +16,6 @@ def parse():
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Target volume for responsive material')
 	parser.add_argument('-k', '--kappa', type = float, default = 6.0e-3, help = 'Weight of perimeter penalization')
 	parser.add_argument('-e', '--epsilon', type = float, default = 2.0e-3, help = 'Phase-field regularization parameter')
-	parser.add_argument('-o', '--output', type = str, default = 'test1', help = 'Output folder')
 	parser.add_argument('-m', '--mesh', type = str, default = 'motion.msh', help = 'Design domain mesh')
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
@@ -43,7 +42,7 @@ Id = Identity(mesh.geometric_dimension()) #Identity tensor
 V = FunctionSpace(mesh, 'CG', 1)
 VV = VectorFunctionSpace(mesh, 'CG', 1, dim = 2)
 
-# Create initial design + initial stimulus
+# Create initial design
 ###### Begin Initial Design + stimulus #####
 mesh_coordinates = mesh.coordinates.dat.data[:]
 M = len(mesh_coordinates)
@@ -53,6 +52,7 @@ rho_i = Function(V, name = "Material density")
 rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 stimulus = Function(V, name = "Stimulus")
+
 
 rho2.interpolate(Constant(options.volume_s))
 rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
@@ -82,10 +82,11 @@ kappa_m_e = Constant(kappa * epsilon)
 # Define predescribed displacement
 u_star = Constant((0, 1.0))
 
-# Young's modulus of the materials and poisson ratio
+# Young's modulus of the beam and poisson ratio
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
+ratio = options.ermodulus/options.esmodulus
 nu = Constant(0.3) #nu poisson ratio
 
 mu_v = E_v/(2 * (1 + nu))
@@ -118,8 +119,7 @@ def h_s(rho):
 def h_r(rho):
 	return pow(rho.sub(1), options.power_p)
 
-
-# Define the triple-well potential function
+# Define the double-well potential function
 # W(x, y) = (1 - x - y)^p * (x + y)^p + (1 - x)^p * x^p + (1 - y)^p * y^p
 def W(rho):
 	void_func = pow((1 - rho.sub(0) - rho.sub(1)), options.power_p) * pow((rho.sub(0) + rho.sub(1)), options.power_p)
@@ -131,7 +131,7 @@ def W(rho):
 def epsilon(u):
 	return 0.5 * (grad(u) + grad(u).T)
 
-# Define the residual stress
+# Define the residual stresses
 def sigma_A(A, Id):
 	return lambda_r * tr(A) * Id + 2 * mu_r * A
 
@@ -194,7 +194,7 @@ a_lagrange_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(p)) * dx
 a_lagrange_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(p)) * dx
 a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
 
-L_lagrange = -inner(u_star, p) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
+L_lagrange = inner(-u_star, p) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
 R_lagrange = a_lagrange - L_lagrange
 L = JJ + R_lagrange
 
@@ -207,8 +207,17 @@ a_adjoint = a_adjoint_v + a_adjoint_s + a_adjoint_r
 L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint + L_adjoint
 
-# Beam .pvd file for saving designs
-beam = VTKFile(options.output + '/beam.pvd')
+# .pvd file for saving designs
+if ratio == 100.0:
+	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
+elif ratio == 10.0:
+	folder_file = 'alternateFirstComputationRatio10/Ratio10.pvd'
+elif ratio == 1.0:
+	folder_file = 'alternateFirstComputationRatio1/Ratio1.pvd'
+else:
+	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
+
+beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 
@@ -227,12 +236,12 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Print volume fraction of structural material
 	volume_s = assemble(v_s(rho) * dx)/omega
-	PETSc.Sys.Print("    The volume fraction(Vs) is {}".format(volume_s))
+	print("The volume fraction(Vs) is {}".format(volume_s))
 
 	# Print volume fraction of responsive material
 	volume_r = assemble(v_r(rho) * dx)/omega
-	PETSc.Sys.Print("    The volume fraction(Vr) is {}".format(volume_r))
-	# print(" ")
+	print("The volume fraction(Vr) is {}".format(volume_r))
+	print(" ")
 
 	# Minimization with respect to stimulus
 	A = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(p))
@@ -253,13 +262,13 @@ def FormObjectiveGradient(tao, x, G):
 			arrayS[i] = arrayA[i]/arrayB[i]
 
 	stimulus.vector()[:] = arrayS
-
+	
 	i = tao.getIterationNumber()
-
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
 		rho_stru.interpolate(rho.sub(0))
 		rho_resp.interpolate(rho.sub(1))
+		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
 
 		solve(R_fwd_s == 0, u, bcs = bcs)
 		beam.write(rho_i, stimulus, rho_stru, rho_resp, rho_void, u, time = i)
@@ -276,7 +285,7 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
-	PETSc.Sys.Print("    The value of objective function is {}\n".format(objective_value))
+	print("The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
