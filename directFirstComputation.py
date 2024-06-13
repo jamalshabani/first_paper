@@ -229,7 +229,6 @@ rho_stru = Function(V, name = "Structural")
 dJds = Function(V)
 stimulus = Function(V, name = "Stimulus")
 
-N = M * 3
 index_2 = [3 * i for i in range(M)]
 index_3 = [3 * i + 1 for i in range(M)]
 index_s = [3 * i + 2 for i in range(M)]

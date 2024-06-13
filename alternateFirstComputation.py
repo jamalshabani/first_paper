@@ -226,7 +226,6 @@ rho_resp = Function(V, name = "Responsive")
 func_A = Function(V, name = "A")
 func_B = Function(V, name = "B")
 
-N = M * 2
 index_2 = [2 * i for i in range(M)]
 index_3 = [2 * i + 1 for i in range(M)]
 
