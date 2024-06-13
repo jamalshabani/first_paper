@@ -211,13 +211,13 @@ L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint - L_adjoint
 
 if ratio == 100.0:
-	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
+	folder_file = 'directFirstComputationRatio100/Ratio100.pvd'
 elif ratio == 10.0:
-	folder_file = 'alternateFirstComputationRatio10/Ratio10.pvd'
+	folder_file = 'directFirstComputationRatio10/Ratio10.pvd'
 elif ratio == 1.0:
-	folder_file = 'alternateFirstComputationRatio1/Ratio1.pvd'
+	folder_file = 'directFirstComputationRatio1/Ratio1.pvd'
 else:
-	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
+	folder_file = 'directFirstComputationRatio01/Ratio01.pvd'
 
 beam = File(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
