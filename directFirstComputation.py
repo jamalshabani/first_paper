@@ -80,12 +80,12 @@ kappa_m_e = Constant(kappa * epsilon)
 
 # Define predescribed displacement
 u_star = Constant((0, 1.0))
-f = Constant((0, 0.0))
 
 # Young's modulus of the beam and poisson ratio
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
+ratio = options.ermodulus/options.esmodulus
 nu = Constant(0.3) #nu poisson ratio
 
 mu_v = E_v/(2 * (1 + nu))
@@ -210,28 +210,29 @@ a_adjoint = a_adjoint_v + a_adjoint_s + a_adjoint_r
 L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint - L_adjoint
 
-# Beam .pvd file for saving designs
-beam = File(options.output + '/beam.pvd')
+if ratio == 100.0:
+	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
+elif ratio == 10.0:
+	folder_file = 'alternateFirstComputationRatio10/Ratio10.pvd'
+elif ratio == 1.0:
+	folder_file = 'alternateFirstComputationRatio1/Ratio1.pvd'
+else:
+	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
+
+beam = File(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
-rho_res = Function(V, name = "Responsive")
-rho_str = Function(V, name = "Structural")
-rho_void = Function(V, name = "Void")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
+rho_void = Function(V, name = "Void")
+rho_resp = Function(V, name = "Responsive")
+rho_stru = Function(V, name = "Structural")
+
 dJds = Function(V)
 stimulus = Function(V, name = "Stimulus")
 
 N = M * 3
-index_2 = []
-index_3 = []
-index_s = []
-
-for i in range(N):
-	if (i%3) == 0:
-		index_2.append(i)
-	if (i%3) == 1:
-		index_3.append(i)
-	if (i%3) == 2:
-		index_s.append(i)
+index_2 = [3 * i for i in range(M)]
+index_3 = [3 * i + 1 for i in range(M)]
+index_s = [3 * i + 2 for i in range(M)]
 
 def FormObjectiveGradient(tao, x, G):
 
@@ -248,12 +249,12 @@ def FormObjectiveGradient(tao, x, G):
 	if (i%5) == 0:
 		rho_i.interpolate(rho.sub(1) - rho.sub(0))
 		stimulus.interpolate(rho.sub(2))
-		rho_str.interpolate(rho.sub(0))
+		rho_stru.interpolate(rho.sub(0))
 		rho_void.interpolate(1 - rho.sub(0) - rho.sub(1))
-		rho_res.interpolate(rho.sub(1))
+		rho_resp.interpolate(rho.sub(1))
 
 		solve(R_fwd_s == 0, u, bcs = bcs)
-		beam.write(rho_i, stimulus, rho_str, rho_res, rho_void, u, time = i)
+		beam.write(rho_i, stimulus, rho_stru, rho_resp, rho_void, u, time = i)
 
 	with rho.dat.vec as rho_vec:
 		rho_vec.set(0.0)

@@ -227,14 +227,8 @@ func_A = Function(V, name = "A")
 func_B = Function(V, name = "B")
 
 N = M * 2
-index_2 = []
-index_3 = []
-
-for i in range(N):
-	if (i%2) == 0:
-		index_2.append(i)
-	if (i%2) == 1:
-		index_3.append(i)
+index_2 = [2 * i for i in range(M)]
+index_3 = [2 * i + 1 for i in range(M)]
 
 def FormObjectiveGradient(tao, x, G):
 
