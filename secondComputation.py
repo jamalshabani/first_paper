@@ -260,13 +260,13 @@ R_adj_x = a_adjoint_x + L_adjoint_x
 R_adj_y = a_adjoint_y + L_adjoint_y
 
 if ratio == 100.0:
-	folder_file = 'secondComputationRatio100/Ratio100.pvd'
+	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
 elif ratio == 10.0:
-	folder_file = 'secondComputationRatio10/Ratio10.pvd'
+	folder_file = 'alternateFirstComputationRatio10/Ratio10.pvd'
 elif ratio == 1.0:
-	folder_file = 'secondComputationRatio1/Ratio1.pvd'
+	folder_file = 'alternateFirstComputationRatio1/Ratio1.pvd'
 else:
-	folder_file = 'secondComputationRatio01/Ratio01.pvd'
+	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
 
 beam = File(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
@@ -279,6 +279,7 @@ rho_resp = Function(V, name = "Responsive")
 func_Ax = Function(V, name = "Ax")
 func_Ay = Function(V, name = "Ay")
 func_B = Function(V, name = "B")
+
 
 index_2 = [2 * i for i in range(M)]
 index_3 = [2 * i + 1 for i in range(M)]
