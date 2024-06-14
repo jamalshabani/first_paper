@@ -89,6 +89,7 @@ u_star_y = Constant((0.0, 1.0)) # Up
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
+ratio = options.ermodulus/options.esmodulus
 nu = Constant(0.3) #nu poisson ratio
 
 mu_v = E_v/(2 * (1 + nu))
