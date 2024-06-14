@@ -258,8 +258,16 @@ L_adjoint_y = inner(uy - u_star_y, vy) * dx(4)
 R_adj_x = a_adjoint_x + L_adjoint_x
 R_adj_y = a_adjoint_y + L_adjoint_y
 
-# Beam .pvd file for saving designs
-beam = File(options.output + '/beam.pvd')
+if ratio == 100.0:
+	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
+elif ratio == 10.0:
+	folder_file = 'alternateFirstComputationRatio10/Ratio10.pvd'
+elif ratio == 1.0:
+	folder_file = 'alternateFirstComputationRatio1/Ratio1.pvd'
+else:
+	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
+
+beam = File(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 
@@ -271,16 +279,8 @@ func_Ax = Function(V, name = "Ax")
 func_Ay = Function(V, name = "Ay")
 func_B = Function(V, name = "B")
 
-
-N = M * 2
-index_2 = []
-index_3 = []
-
-for i in range(N):
-	if (i%2) == 0:
-		index_2.append(i)
-	if (i%2) == 1:
-		index_3.append(i)
+index_2 = [2 * i for i in range(M)]
+index_3 = [2 * i + 1 for i in range(M)]
 
 def FormObjectiveGradient(tao, x, G):
 
