@@ -28,6 +28,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -66,8 +67,9 @@ sx.interpolate(Constant(options.steamy))
 sy.interpolate(Constant(options.steamy))
 sz.interpolate(Constant(options.steamy))
 
-rho = as_vector([rho2, rho3])
-rho = interpolate(rho, VV)
+# rho = as_vector([rho2, rho3])
+# rho = interpolate(rho, VV)
+rho = Function(VV).interpolate(as_vector([rho2, rho3]))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -76,7 +78,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = assemble(Function(V).interpolate(1.0) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -92,6 +95,7 @@ u_star_z = Constant((-0.5, -sqrt(3)/2)) #DownLeft
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
+ratio = options.ermodulus/options.esmodulus
 nu = Constant(0.3) #nu poisson ratio
 
 mu_v = E_v/(2 * (1 + nu))
@@ -291,8 +295,16 @@ R_adj_x = a_adjoint_x - L_adjoint_x
 R_adj_y = a_adjoint_y - L_adjoint_y
 R_adj_z = a_adjoint_z - L_adjoint_z
 
-# Beam .pvd file for saving designs
-beam = File(options.output + '/beam.pvd')
+if ratio == 100.0:
+	folder_file = 'hexagonalComputationRatio100/Ratio100.pvd'
+elif ratio == 10.0:
+	folder_file = 'hexagonalComputationRatio10/Ratio10.pvd'
+elif ratio == 1.0:
+	folder_file = 'hexagonalComputationRatio1/Ratio1.pvd'
+else:
+	folder_file = 'hexagonalComputationRatio01/Ratio01.pvd'
+
+beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 
@@ -309,15 +321,8 @@ sy = Function(V, name = "Stimulus y") #UpLeft
 sz = Function(V, name = "Stimulus z") #DownLeft
 func_B = Function(V, name = "B")
 
-N = M * 2
-index_2 = []
-index_3 = []
-
-for i in range(N):
-	if (i%2) == 0:
-		index_2.append(i)
-	if (i%2) == 1:
-		index_3.append(i)
+index_2 = [2 * i for i in range(M)]
+index_3 = [2 * i + 1 for i in range(M)]
 
 def FormObjectiveGradient(tao, x, G):
 
@@ -421,10 +426,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0))
-ub = as_vector((1, 1))
-lb = interpolate(lb, VV)
-ub = interpolate(ub, VV)
+# lb = as_vector((0, 0))
+# ub = as_vector((1, 1))
+# lb = interpolate(lb, VV)
+# ub = interpolate(ub, VV)
+lb = Function(VV).interpolate(as_vector((0, 0)))
+ub = Function(VV).interpolate(as_vector((1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
@@ -433,7 +440,7 @@ with ub.dat.vec as ub_vec:
 	rho_ub = ub_vec
 
 # Setting TAO solver
-tao = PETSc.TAO().create(PETSc.COMM_SELF)
+tao = PETSc.TAO().create(PETSc.COMM_WORLD)
 tao.setType('bncg')
 tao.setObjectiveGradient(FormObjectiveGradient, None)
 tao.setVariableBounds(rho_lb, rho_ub)
