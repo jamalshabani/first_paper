@@ -14,9 +14,8 @@ def parse():
 	parser.add_argument('-tao_gttol', '--tao_gttol', type = float, default = 1.0e-7, help = 'Stop if norm of gradient is reduced by this factor')
 	parser.add_argument('-vs', '--volume_s', type = float, default = 0.3, help = 'Target volume for structural material')
 	parser.add_argument('-vr', '--volume_r', type = float, default = 0.3, help = 'Target volume for responsive material')
-	parser.add_argument('-k', '--kappa', type = float, default = 5.0e-3, help = 'Weight of perimeter penalization')
-	parser.add_argument('-e', '--epsilon', type = float, default = 4.0e-3, help = 'Phase-field regularization parameter')
-	parser.add_argument('-o', '--output', type = str, default = 'output1', help = 'Output folder')
+	parser.add_argument('-k', '--kappa', type = float, default = 6.0e-3, help = 'Weight of perimeter penalization')
+	parser.add_argument('-e', '--epsilon', type = float, default = 2.0e-3, help = 'Phase-field regularization parameter')
 	parser.add_argument('-m', '--mesh', type = str, default = 'motion.msh', help = 'Design domain mesh')
 	parser.add_argument('-es', '--esmodulus', type = float, default = 0.01, help = 'Elastic Modulus for structural material')
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
@@ -28,6 +27,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -54,15 +54,15 @@ rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 s = Function(V, name = "Stimulus")
 
-x, y = SpatialCoordinate(mesh)
 rho2.interpolate(Constant(options.volume_s))
 rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 rho3.interpolate(Constant(options.volume_r))
 rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 s.interpolate(Constant(options.steamy))
 
-rho = as_vector([rho2, rho3, s])
-rho = interpolate(rho, VVV)
+# rho = as_vector([rho2, rho3, s])
+# rho = interpolate(rho, VVV)
+rho = Function(VVV).interpolate(as_vector([rho2, rho3, s]))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -71,7 +71,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = assemble(Function(V).interpolate(1.0) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -186,7 +187,7 @@ a_forward_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(v)) * dx
 a_forward_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(v)) * dx
 a_forward = a_forward_v + a_forward_s + a_forward_r
 
-L_forward = -inner(u_star, v) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
+L_forward = inner(-u_star, v) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 L_forward_s = s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 R_fwd = a_forward - L_forward
 R_fwd_s = a_forward - L_forward_s
@@ -197,7 +198,7 @@ a_lagrange_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(p)) * dx
 a_lagrange_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(p)) * dx
 a_lagrange   = a_lagrange_v + a_lagrange_s + a_lagrange_r
 
-L_lagrange = -inner(u_star, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
+L_lagrange = inner(-u_star, p) * ds(8) + s_s(rho) * h_r(rho) * inner(sigma_A(Id, Id), epsilon(p)) * dx
 R_lagrange = a_lagrange - L_lagrange
 L = JJ - R_lagrange
 
@@ -219,7 +220,7 @@ elif ratio == 1.0:
 else:
 	folder_file = 'directFirstComputationRatio01/Ratio01.pvd'
 
-beam = File(folder_file)
+beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 rho_void = Function(V, name = "Void")
@@ -286,10 +287,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0, -1))
-ub = as_vector((1, 1, 1))
-lb = interpolate(lb, VVV)
-ub = interpolate(ub, VVV)
+# lb = as_vector((0, 0, -1))
+# ub = as_vector((1, 1, 1))
+# lb = interpolate(lb, VVV)
+# ub = interpolate(ub, VVV)
+lb = Function(VVV).interpolate(as_vector((0, 0, -1)))
+ub = Function(VVV).interpolate(as_vector((1, 1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
@@ -298,7 +301,7 @@ with ub.dat.vec as ub_vec:
 	rho_ub = ub_vec
 
 # Setting TAO solver
-tao = PETSc.TAO().create(PETSc.COMM_SELF)
+tao = PETSc.TAO().create(PETSc.COMM_WORLD)
 tao.setType('bncg')
 tao.setObjectiveGradient(FormObjectiveGradient, None)
 tao.setVariableBounds(rho_lb, rho_ub)
