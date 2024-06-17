@@ -27,6 +27,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -52,15 +53,16 @@ rho2 = Function(V, name = "Structural material")  # Structural material 1(Blue)
 rho3 = Function(V, name = "Responsive material")  # Responsive material 2(Red)
 stimulus = Function(V, name = "Stimulus")
 
-x, y = SpatialCoordinate(mesh)
+
 rho2.interpolate(Constant(options.volume_s))
 rho2.interpolate(Constant(1.0), mesh.measure_set("cell", 4))
 rho3.interpolate(Constant(options.volume_r))
 rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 stimulus.interpolate(Constant(options.steamy))
 
-rho = as_vector([rho2, rho3])
-rho = interpolate(rho, VV)
+# rho = as_vector([rho2, rho3])
+# rho = interpolate(rho, VV)
+rho = Function(VV).interpolate(as_vector([rho2, rho3]))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -69,7 +71,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = assemble(Function(V).interpolate(1.0) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -180,7 +183,7 @@ a_forward_s = h_s(rho) * inner(sigma_s(u, Id), epsilon(v)) * dx
 a_forward_r = h_r(rho) * inner(sigma_r(u, Id), epsilon(v)) * dx
 a_forward = a_forward_v + a_forward_s + a_forward_r
 
-L_forward = -inner(u_star, v) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
+L_forward = inner(-u_star, v) * ds(8) + stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 L_forward_s = stimulus * h_r(rho) * inner(sigma_A(Id, Id), epsilon(v)) * dx
 R_fwd_s = a_forward - L_forward_s
 R_fwd = a_forward - L_forward
@@ -205,7 +208,6 @@ L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint + L_adjoint
 
 # .pvd file for saving designs
-
 if ratio == 100.0:
 	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
 elif ratio == 10.0:
@@ -215,7 +217,7 @@ elif ratio == 1.0:
 else:
 	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
 
-beam = File(folder_file)
+beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 
@@ -226,6 +228,7 @@ rho_resp = Function(V, name = "Responsive")
 func_A = Function(V, name = "A")
 func_B = Function(V, name = "B")
 
+N = M * 2
 index_2 = [2 * i for i in range(M)]
 index_3 = [2 * i + 1 for i in range(M)]
 
@@ -298,10 +301,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0))
-ub = as_vector((1, 1))
-lb = interpolate(lb, VV)
-ub = interpolate(ub, VV)
+# lb = as_vector((0, 0))
+# ub = as_vector((1, 1))
+# lb = interpolate(lb, VV)
+# ub = interpolate(ub, VV)
+lb = Function(VV).interpolate(as_vector((0, 0)))
+ub = Function(VV).interpolate(as_vector((1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
@@ -310,7 +315,7 @@ with ub.dat.vec as ub_vec:
 	rho_ub = ub_vec
 
 # Setting TAO solver
-tao = PETSc.TAO().create(PETSc.COMM_SELF)
+tao = PETSc.TAO().create(PETSc.COMM_WORLD)
 tao.setType('bncg')
 tao.setObjectiveGradient(FormObjectiveGradient, None)
 tao.setVariableBounds(rho_lb, rho_ub)
