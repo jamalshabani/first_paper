@@ -28,6 +28,7 @@ def parse():
 options = parse()
 
 from firedrake import *
+from firedrake.output import VTKFile
 from petsc4py import PETSc
 import time
 import numpy as np
@@ -64,8 +65,9 @@ rho3.interpolate(Constant(0.0), mesh.measure_set("cell", 4))
 sx.interpolate(Constant(options.steamy))
 sy.interpolate(Constant(options.steamy))
 
-rho = as_vector([rho2, rho3])
-rho = interpolate(rho, VV)
+# rho = as_vector([rho2, rho3])
+# rho = interpolate(rho, VV)
+rho = Function(VV).interpolate(as_vector([rho2, rho3]))
 ###### End Initial Design + stimulus #####
 
 # Define the constant parameter used in the problem
@@ -74,7 +76,8 @@ lagrange_r = Constant(options.lagrange_r)
 lagrange_s = Constant(options.lagrange_s)
 
 # Total volume of the domain |omega|
-omega = assemble(interpolate(Constant(1.0), V) * dx)
+# omega = assemble(interpolate(Constant(1.0), V) * dx)
+omega = assemble(Function(V).interpolate(1.0) * dx)
 
 delta = Constant(1.0e-6)
 epsilon = Constant(options.epsilon)
@@ -149,9 +152,6 @@ def sigma_s(u, Id):
 # Define the stress tensor sigma_r(u) for responsive material
 def sigma_r(u, Id):
 	return lambda_r * tr(epsilon(u)) * Id + 2 * mu_r * epsilon(u)
-
-
-# Update Lagrange multipliers
 
 # Define test function and beam displacement
 vx = TestFunction(VV)
@@ -268,7 +268,7 @@ elif ratio == 1.0:
 else:
 	folder_file = 'secondComputationRatio01/Ratio01.pvd'
 
-beam = File(folder_file)
+beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
 dJdrho3 = Function(V, name = "Grad w.r.t rho3")
 
@@ -370,10 +370,12 @@ def FormObjectiveGradient(tao, x, G):
 	return f_val
 
 # Setting lower and upper bounds
-lb = as_vector((0, 0))
-ub = as_vector((1, 1))
-lb = interpolate(lb, VV)
-ub = interpolate(ub, VV)
+# lb = as_vector((0, 0))
+# ub = as_vector((1, 1))
+# lb = interpolate(lb, VV)
+# ub = interpolate(ub, VV)
+lb = Function(VV).interpolate(as_vector((0, 0)))
+ub = Function(VV).interpolate(as_vector((1, 1)))
 
 with lb.dat.vec as lb_vec:
 	rho_lb = lb_vec
@@ -382,7 +384,7 @@ with ub.dat.vec as ub_vec:
 	rho_ub = ub_vec
 
 # Setting TAO solver
-tao = PETSc.TAO().create(PETSc.COMM_SELF)
+tao = PETSc.TAO().create(PETSc.COMM_WORLD)
 tao.setType('bncg')
 tao.setObjectiveGradient(FormObjectiveGradient, None)
 tao.setVariableBounds(rho_lb, rho_ub)
