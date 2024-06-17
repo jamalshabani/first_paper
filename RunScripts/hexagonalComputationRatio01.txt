@@ -1,0 +1,14 @@
+Stiffness ratio Er/En = 0.1
+     python3 hexagonal.py -tao_monitor -tao_max_it 1000 -tao_max_funcs 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7  -o 'test1' -er 5.0e-3 -es 5.0e-2 -lr 0.03 -ls 1.0 -k 5.0e-4 -e 2.0e-3 -vr 0.3 -vs 0.3
+    
+     Convergence summary:
+          The initial value of objective function: 1.0689672487157882
+          The final value of objective function: 0.0060726545803382916
+          Final volume percentages:
+               Non-responsive material: 12%
+               Responsive material: 32%
+          Number of iterations: 931
+          Objective function evaluations: 933
+          Gradient evaluations: 933
+          Time: 1089 seconds
+          Torelance: 1.0e-7
