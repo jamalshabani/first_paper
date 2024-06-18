@@ -282,12 +282,11 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Print volume fraction of structural material
 	volume_s = assemble(v_s(rho) * dx)/omega
-	print("The volume fraction(Vs) is {}".format(volume_s))
+	PETSc.Sys.Print("   The volume fraction(Vs) is {}".format(volume_s))
 
 	# Print volume fraction of responsive material
 	volume_r = assemble(v_r(rho) * dx)/omega
-	print("The volume fraction(Vr) is {}".format(volume_r))
-	print(" ")
+	PETSc.Sys.Print("   The volume fraction(Vr) is {}".format(volume_r))
 
 	# Minimization with respect to stimulus
 	Ax = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(px))
@@ -348,7 +347,7 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
-	print("The value of objective function is {}".format(objective_value))
+	PETSc.Sys.Print("   The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3 and s
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
@@ -393,4 +392,4 @@ tao.solve(x)
 tao.destroy()
 
 end = time.time()
-print("\nExecution time (in seconds):", (end - start))
+PETSc.Sys.Print("\nExecution time (in seconds):", (end - start))
