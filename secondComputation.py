@@ -22,6 +22,8 @@ def parse():
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation')
 	parser.add_argument('-s', '--steamy', type = float, default = 0.0, help = 'Initial stimulus')
+	parser.add_argument('-o', '--output', type = str, default = 'beam', help = 'Output file')
+	parser.add_argument('-log_view')
 	options = parser.parse_args()
 	return options
 
@@ -92,7 +94,6 @@ u_star_y = Constant((0.0, 1.0)) # Up
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
-ratio = options.ermodulus/options.esmodulus
 nu = Constant(0.3) #nu poisson ratio
 
 mu_v = E_v/(2 * (1 + nu))
@@ -259,14 +260,7 @@ L_adjoint_y = inner(uy - u_star_y, vy) * dx(4)
 R_adj_x = a_adjoint_x + L_adjoint_x
 R_adj_y = a_adjoint_y + L_adjoint_y
 
-if ratio == 100.0:
-	folder_file = 'secondComputationRatio100/Ratio100.pvd'
-elif ratio == 10.0:
-	folder_file = 'secondComputationRatio10/Ratio10.pvd'
-elif ratio == 1.0:
-	folder_file = 'secondComputationRatio1/Ratio1.pvd'
-else:
-	folder_file = 'secondComputationRatio01/Ratio01.pvd'
+folder_file = options.output
 
 beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")

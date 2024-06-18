@@ -21,6 +21,8 @@ def parse():
 	parser.add_argument('-er', '--ermodulus', type = float, default = 1.0, help = 'Elastic Modulus for responsive material')
 	parser.add_argument('-p', '--power_p', type = float, default = 2.0, help = 'Power for elasticity interpolation + triple well potential')
 	parser.add_argument('-s', '--steamy', type = float, default = 0.0, help = 'Initial stimulus')
+	parser.add_argument('-o', '--output', type = str, default = 'beam', help = 'Output file')
+	parser.add_argument('-log_view')
 	options = parser.parse_args()
 	return options
 
@@ -33,7 +35,6 @@ import time
 import numpy as np
 
 start = time.time()
-
 # Import gmesh
 mesh = Mesh(options.mesh)
 Id = Identity(mesh.geometric_dimension()) #Identity tensor
@@ -86,7 +87,6 @@ u_star = Constant((0, 1.0))
 E_v = Constant(delta)
 E_s = Constant(options.esmodulus)
 E_r = Constant(options.ermodulus)
-ratio = options.ermodulus/options.esmodulus
 nu = Constant(0.3) #nu poisson ratio
 
 mu_v = E_v/(2 * (1 + nu))
@@ -207,15 +207,7 @@ a_adjoint = a_adjoint_v + a_adjoint_s + a_adjoint_r
 L_adjoint = inner(u - u_star, v) * dx(4)
 R_adj = a_adjoint + L_adjoint
 
-# .pvd file for saving designs
-if ratio == 100.0:
-	folder_file = 'alternateFirstComputationRatio100/Ratio100.pvd'
-elif ratio == 10.0:
-	folder_file = 'alternateFirstComputationRatio10/Ratio10.pvd'
-elif ratio == 1.0:
-	folder_file = 'alternateFirstComputationRatio1/Ratio1.pvd'
-else:
-	folder_file = 'alternateFirstComputationRatio01/Ratio01.pvd'
+folder_file = options.output
 
 beam = VTKFile(folder_file)
 dJdrho2 = Function(V, name = "Grad w.r.t rho2")
@@ -236,12 +228,11 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Print volume fraction of structural material
 	volume_s = assemble(v_s(rho) * dx)/omega
-	print("The volume fraction(Vs) is {}".format(volume_s))
+	PETSc.Sys.Print("   The volume fraction(Vs) is {}".format(volume_s))
 
 	# Print volume fraction of responsive material
 	volume_r = assemble(v_r(rho) * dx)/omega
-	print("The volume fraction(Vr) is {}".format(volume_r))
-	print(" ")
+	PETSc.Sys.Print("   The volume fraction(Vr) is {}".format(volume_r))
 
 	# Minimization with respect to stimulus
 	A = h_r(rho) * (lambda_r + 2 * mu_r) * tr(epsilon(p))
@@ -285,7 +276,7 @@ def FormObjectiveGradient(tao, x, G):
 
 	# Evaluate the objective function
 	objective_value = assemble(J)
-	print("The value of objective function is {}".format(objective_value))
+	PETSc.Sys.Print("   The value of objective function is {}".format(objective_value))
 
 	# Compute gradiet w.r.t rho2 and rho3
 	dJdrho2.interpolate(assemble(derivative(L, rho.sub(0))).riesz_representation(riesz_map="l2"))
@@ -296,6 +287,8 @@ def FormObjectiveGradient(tao, x, G):
 
 	G.setValues(index_2, dJdrho2.vector().array())
 	G.setValues(index_3, dJdrho3.vector().array())
+	G.assemblyBegin()
+	G.assemblyEnd()
 
 	f_val = assemble(L)
 	return f_val
@@ -330,4 +323,4 @@ tao.solve(x)
 tao.destroy()
 
 end = time.time()
-print("\nExecution time (in seconds):", (end - start))
+PETSc.Sys.Print("\nExecution time (in seconds):", (end - start))
