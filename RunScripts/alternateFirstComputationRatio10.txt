@@ -1,14 +1,14 @@
 Stiffness ratio E3/E2 = 10.0
-     python3 alternateFirstComputation.py -tao_monitor -tao_max_it 10000 -tao_max_funcs 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -er 1.0e0 -es 1.0e-1 -lr 4.0 -ls 0.237 -k 8.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3
+     srun -n 1 python3 alternateFirstComputation.py  -tao_monitor -tao_max_funcs 10000 -tao_max_it 10000 -tao_view -tao_gatol 1.0e-7 -tao_grtol 1.0e-7 -tao_gttol 1.0e-7 -tao_ls_type unit -er 1.0e0 -es 1.0e-1 -lr 4.0 -ls 0.237 -k 8.0e-3 -e 2.0e-3 -vr 0.3 -vs 0.3 -o alt10.pvd
 
      Convergence summary:
-          The initial value of objective function: 10.649078205201214
-          The final value of objective function: 0.2097214871047352
+          The initial value of objective function: 10.64907820525674
+          The final value of objective function: 0.21121501409322135
           Final volume percentages:
-               Non-responsive material: 26%
+               Non-responsive material: 25%
                Responsive material: 27%
-          Number of iterations: 2863
-          Objective function evaluations: 2865
-          Gradient evaluations: 2865
-          Time: 1142 seconds
+          Number of iterations: 4523
+          Objective function evaluations: 4525
+          Gradient evaluations: 4525
+          Time: 3518 seconds
           Torelance: 1.0e-7
